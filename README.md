@@ -1,21 +1,33 @@
-# Protmūšis — Quiz Night slides
+# Quiz Night — slides
 
 Slide deck for the **16 June quiz night** at the Permanent Representation of
 Lithuania to the EU, built from the questions drafted in
 `Klausimai protmūšiui.docx`.
 
-Format follows Arnas' brief: **one slide — question, next slide — answer.**
-Production notes from the draft (which photo/video to find, source links,
-hint options) are preserved in the **speaker notes** of each slide.
+Format: **one slide — question, next slide — answer.** The deck is fully in
+English for an international audience. Production notes from the draft
+(source links, hint options, alternative question versions) live in the
+**speaker notes** of each slide.
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `Protmusis_2026-06-16.pptx` | The deck (49 slides, 16:9) — open in PowerPoint |
-| `Protmusis_2026-06-16.pdf` | PDF preview for quick review |
-| `generate_slides.py` | Script that builds the deck (`python3 generate_slides.py`, needs `python-pptx`) |
+| `Quiz_Night_2026-06-16.pptx` | The deck (49 slides, 16:9) — open in PowerPoint |
+| `Quiz_Night_2026-06-16.pdf` | PDF preview for quick review |
+| `generate_slides.py` | Builds the deck: `pip install python-pptx && python3 generate_slides.py` |
+| `fetch_assets.py` | Downloads/renders the illustrations into `assets/`: `pip install cairosvg && python3 fetch_assets.py` |
+| `assets/` | Rendered illustrations (committed, so the deck builds offline) |
 | `Klausimai protmūšiui.docx` | Original question draft |
+
+## Design
+
+- Windows-native typography (Calibri throughout) — opens correctly in any
+  modern PowerPoint with no font substitution.
+- Dark ink title/divider slides, white content slides, amber accent.
+- Illustrations are [OpenMoji](https://openmoji.org) (CC BY-SA 4.0),
+  rendered at high resolution — one consistent visual system across all
+  49 slides.
 
 ## Deck structure
 
@@ -26,33 +38,29 @@ hint options) are preserved in the **speaker notes** of each slide.
 5. **Bonus — The Brussels Bubble** · 3 insider questions (1–2 points)
 6. **Closing / scoring**
 
-## Media still to collect (placeholders are on the slides)
+## Videos
 
-- [ ] **R1 Q1** — photo of Pheasant Island
-- [ ] **R1 Q2** — 1986 flag-raising at the Berlaymont
-- [ ] **R1 Q4** — €500 banknote
-- [ ] **R2 Q1** — video excerpt, LT United "We Are The Winners" ([link](https://www.youtube.com/watch?v=DBAdOlQPbwg)) — *pasitarkime, kurią dalį rodysime*; Lena Valaitis photo for the answer
-- [ ] **R2 Q2** — climbers + amber photos (Vitkauskas 1995, Vilius 2003)
-- [ ] **R2 Q3** — interwar statistics image, or butter & bacon illustration
-- [ ] **R2 Q4** — fern flower photo
-- [ ] **R2 Q5** — women's suffrage centenary stamp ([manoteises.lt](https://manoteises.lt/straipsnis/isleidziamas-pasto-zenklas-moteru-balsavimo-simtmeciui-lietuvoje-pamineti/))
-- [ ] **R2 Q6** — Radvila Našlaitėlis portrait, book illustration, mummies
-- [ ] **R2 Q7** — accession promo video **with English subtitles** ([link](https://www.youtube.com/watch?v=YgvHcenDYcU)); 2004 enlargement map for the answer
-- [ ] **R2 Q8** — šaltibarščiai photo
-- [ ] **R3 Q1** — Metallica Antarctica concert photo/video
-- [ ] **R3 Q2** — photo of the Trimates ([source idea](https://www.themarysue.com/the-trimates-three-women-that-made-science-history/))
-- [ ] **R3 Q4** — beaver photo + LT population statistics, if available
-- [ ] **Bonus Q3** — Baltic Star ship photo (to be sent)
+Questions built around a clip have a **“Play the clip”** button on the slide
+with the URL next to it (and in the speaker notes):
+
+- Round 2 Q1 — LT United, *We Are The Winners* (Eurovision 2006):
+  <https://www.youtube.com/watch?v=DBAdOlQPbwg> — decide which part to show
+- Round 2 Q7 — EU accession promo video (needs English subtitles):
+  <https://www.youtube.com/watch?v=YgvHcenDYcU>
+- Round 1 Q5 answer — the Umaru Dikko story:
+  <https://www.youtube.com/watch?v=N83Idy9IOmU>
+
+To embed the clips offline, download the excerpts and insert them over the
+play-button slides in PowerPoint (Insert → Video).
 
 ## Question pool not yet on slides (from the draft — to discuss)
 
-- CBAM question about nails (*paformuluokit — juokingas klausimas visgi*)
-- The Schumann show / institutions ([video](https://www.youtube.com/watch?v=D0fBh-0Eiy0))
+- CBAM question about nails (needs wording)
+- The Schumann Show / the institutions ([video](https://www.youtube.com/watch?v=D0fBh-0Eiy0))
 - One question per member state / quick-fire round idea
-- Questions voiced by the Minister/Aira and Selemonas Paltanavičius (incl. Belém fire)
-- Napoleon / St Anne's church; Vytis; Pacai–Pazzi family link; Bona Sforza
-- Čiurlionis + ocean act / music question; German street in Vilnius
-- Kaunas modernism / Vilnius baroque; football (France / world-cup question)
-- Adamkus 100 / Attenborough 100; bears from Slovenia
-- G. Mažeikis quote about Eurovision (LT-language version)
-- Baltic Road symbols in the European Parliament
+- Questions voiced by the Minister and Selemonas Paltanavičius (incl. the Belém fire)
+- Napoleon / St Anne's church; Vytis; the Pacai–Pazzi family link; Bona Sforza
+- Čiurlionis + the oceans act / a music question; German street in Vilnius
+- Kaunas modernism / Vilnius baroque; football (France / World Cup angle)
+- Adamkus 100 / Attenborough 100; the bears offered by Slovenia
+- Baltic Way symbols in the European Parliament
