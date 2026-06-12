@@ -1,6 +1,6 @@
-# Quiz Night — slides
+# Trivia Night — slides
 
-Slide deck for the **16 June quiz night** at the Permanent Representation of
+Slide deck for the **16 June trivia night** at the Permanent Representation of
 Lithuania to the EU, built from the questions drafted in
 `Klausimai protmūšiui.docx`.
 
@@ -13,8 +13,8 @@ English for an international audience. Production notes from the draft
 
 | File | Purpose |
 |---|---|
-| `Quiz_Night_2026-06-16.pptx` | The deck (49 slides, 16:9) — open in PowerPoint |
-| `Quiz_Night_2026-06-16.pdf` | PDF preview for quick review |
+| `Trivia_Night_2026-06-16.pptx` | The deck (49 slides, 16:9) — open in PowerPoint |
+| `Trivia_Night_2026-06-16.pdf` | PDF preview for quick review |
 | `generate_slides.py` | Builds the deck: `pip install python-pptx && python3 generate_slides.py` |
 | `fetch_assets.py` | Downloads/renders the illustrations into `assets/`: `pip install cairosvg && python3 fetch_assets.py` |
 | `assets/` | Rendered illustrations (committed, so the deck builds offline) |
