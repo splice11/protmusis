@@ -3,13 +3,18 @@
 Lithuania to the EU) from the questions drafted in `Klausimai protmūšiui.docx`.
 
 Format: one slide per question, followed by one slide with the answer.
-Illustrations are OpenMoji (CC BY-SA 4.0) rendered to `assets/` by
-`fetch_assets.py`; answer-slide photos live in `photos/` (see
-photos/CREDITS.md). Production notes and source links live in speaker notes.
+Question illustrations are real photos from `photos/` where available
+(see photos/CREDITS.md), with OpenMoji icons (CC BY-SA 4.0, rendered to
+`assets/` by `fetch_assets.py`) as fallback. The Montserrat typefaces in
+`fonts/` (SIL OFL 1.1) are embedded into the .pptx so the deck renders
+identically on machines without the fonts installed.
 
 Usage:  pip install python-pptx Pillow && python3 generate_slides.py
 Output: Quiz_Night_2026-06-16.pptx
 """
+
+import os
+import zipfile
 
 from PIL import Image
 from lxml import etree
@@ -26,7 +31,7 @@ PAPER = RGBColor(0xFF, 0xFF, 0xFF)      # headline text
 LIGHT = RGBColor(0xDD, 0xE2, 0xEB)      # body text on dark
 FOG = RGBColor(0x95, 0x9E, 0xAF)        # secondary text on dark
 INK = RGBColor(0x10, 0x13, 0x18)        # text on bright slabs
-CIRCLE = RGBColor(0xF7, 0xF3, 0xE9)     # icon circles
+TILE = RGBColor(0xF7, 0xF3, 0xE9)       # icon tiles
 
 
 def mix(a, b, t):
@@ -52,8 +57,8 @@ CURRENT = THEMES["R2"]  # active round theme; dividers switch it
 
 SLIDE_W = Inches(13.333)
 SLIDE_H = Inches(7.5)
-FONT = "Calibri"
-DISPLAY = "Arial Black"
+FONT = "Montserrat"
+DISPLAY = "Montserrat Black"
 
 prs = Presentation()
 prs.slide_width = SLIDE_W
@@ -121,10 +126,10 @@ def text(slide, x, y, w, h, content, size=16, color=LIGHT, bold=False,
     return tb
 
 
-def icon_circle(slide, name, cx, cy, d):
-    """Icon in a soft circle, centred at (cx, cy) inches, diameter d."""
+def icon_tile(slide, name, cx, cy, d):
+    """Icon on a sharp square tile, centred at (cx, cy) inches, side d."""
     cx, cy, d = Inches(cx), Inches(cy), Inches(d)
-    shape(slide, MSO_SHAPE.OVAL, cx - d / 2, cy - d / 2, d, d, fill=CIRCLE)
+    shape(slide, MSO_SHAPE.RECTANGLE, cx - d / 2, cy - d / 2, d, d, fill=TILE)
     pic = Emu(int(d * 0.72))
     slide.shapes.add_picture(f"assets/{name}.png", cx - pic / 2, cy - pic / 2,
                              pic, pic)
@@ -145,8 +150,8 @@ def edge_bar(slide):
 
 def chip(slide, letter, x, y, side=0.5):
     """Bright square chip with the option letter."""
-    sp = shape(slide, MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y),
-               Inches(side), Inches(side), fill=CURRENT["bright"], radius=0.3)
+    sp = shape(slide, MSO_SHAPE.RECTANGLE, Inches(x), Inches(y),
+               Inches(side), Inches(side), fill=CURRENT["bright"])
     tf = sp.text_frame
     tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
     tf.vertical_anchor = MSO_ANCHOR.MIDDLE
@@ -168,41 +173,31 @@ def tricolour_bars(slide, cy, w=1.05, h=0.14, gap=0.2):
         x += w + gap
 
 
-def photo_frame(slide, name, x, y, w, h):
-    """Photo from photos/, cropped to fill the box, with rounded corners."""
+def place_photo(slide, name, x0, y0, x1, y1, max_h=None, border=True,
+                anchor="right"):
+    """Place a photo from photos/ into the box (inches) at its native
+    aspect ratio — never cropped. The photo fills the box in whichever
+    dimension it can; it is anchored to the right edge (or centred) and
+    vertically centred. Returns the placed (x, y, w, h)."""
     path = f"photos/{name}"
+    src_w, src_h = Image.open(path).size
+    aspect = src_w / src_h
+    bw, bh = x1 - x0, y1 - y0
+    if bw / bh > aspect:
+        h, w = bh, bh * aspect
+    else:
+        w, h = bw, bw / aspect
+    if max_h and h > max_h:
+        h, w = max_h, max_h * aspect
+    x = x1 - w if anchor == "right" else x0 + (bw - w) / 2
+    y = y0 + (bh - h) / 2
     pic = slide.shapes.add_picture(path, Inches(x), Inches(y), Inches(w),
                                    Inches(h))
-    src_w, src_h = Image.open(path).size
-    target, source = w / h, src_w / src_h
-    if source > target:
-        f = 1 - target / source
-        pic.crop_left = pic.crop_right = f / 2
-    elif source < target:
-        f = 1 - source / target
-        pic.crop_top = pic.crop_bottom = f / 2
-    spPr = pic._element.spPr
-    ns = "http://schemas.openxmlformats.org/drawingml/2006/main"
-    for geom in spPr.findall(f"{{{ns}}}prstGeom"):
-        spPr.remove(geom)
-    geom = etree.SubElement(spPr, f"{{{ns}}}prstGeom")
-    geom.set("prst", "roundRect")
-    av = etree.SubElement(geom, f"{{{ns}}}avLst")
-    gd = etree.SubElement(av, f"{{{ns}}}gd")
-    gd.set("name", "adj")
-    gd.set("fmla", "val 6000")
-    pic.line.color.rgb = CURRENT["bright"]
-    pic.line.width = Pt(1.5)
     pic.shadow.inherit = False
-    return pic
-
-
-def icon_row(slide, names, cy, d=1.5, gap=0.55):
-    span = len(names) * d + (len(names) - 1) * gap
-    x = (13.333 - span) / 2 + d / 2
-    for n in names:
-        icon_circle(slide, n, x, cy, d)
-        x += d + gap
+    if border:
+        pic.line.color.rgb = CURRENT["bright"]
+        pic.line.width = Pt(1.25)
+    return x, y, w, h
 
 
 def kicker(slide, left, right=None):
@@ -213,10 +208,9 @@ def kicker(slide, left, right=None):
              right, size=13, bold=True, color=FOG, align=PP_ALIGN.RIGHT)
 
 
-def video_pill(slide, label, url, y):
-    pill = shape(slide, MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.7), Inches(y),
-                 Inches(2.55), Inches(0.46), fill=CURRENT["bright"],
-                 radius=0.5)
+def video_pill(slide, label, url, y, max_x=12.63):
+    pill = shape(slide, MSO_SHAPE.RECTANGLE, Inches(0.7), Inches(y),
+                 Inches(2.55), Inches(0.46), fill=CURRENT["bright"])
     tf = pill.text_frame
     tf.word_wrap = False
     p = tf.paragraphs[0]
@@ -227,20 +221,20 @@ def video_pill(slide, label, url, y):
     r.font.size = Pt(13)
     r.font.bold = True
     r.font.color.rgb = BG
-    text(slide, Inches(3.45), Inches(y + 0.11), Inches(5.5), Inches(0.3), url,
-         size=12, color=FOG)
+    text(slide, Inches(3.45), Inches(y + 0.11), Inches(max_x - 3.45),
+         Inches(0.3), url, size=12, color=FOG)
 
 
 def fact_panel(slide, fact, x, y, w, h):
-    shape(slide, MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y),
-          Inches(w), Inches(h), fill=PANEL, radius=0.07)
+    shape(slide, MSO_SHAPE.RECTANGLE, Inches(x), Inches(y),
+          Inches(w), Inches(h), fill=PANEL)
     shape(slide, MSO_SHAPE.RECTANGLE, Inches(x), Inches(y + 0.14),
           Inches(0.07), Inches(h - 0.28), fill=CURRENT["bright"])
     text(slide, Inches(x + 0.4), Inches(y + 0.3), Inches(w - 0.75),
          Inches(0.3), "DID YOU KNOW?", size=12.5, bold=True,
          color=CURRENT["bright"])
     text(slide, Inches(x + 0.4), Inches(y + 0.72), Inches(w - 0.75),
-         Inches(h - 1.0), fact, size=16, color=LIGHT, spacing=1.15)
+         Inches(h - 1.0), fact, size=15, color=LIGHT, spacing=1.15)
 
 
 # ----------------------------------------------------------------- slides --
@@ -283,11 +277,11 @@ def rules_slide():
     grid = [(0.7, 1.9), (6.95, 1.9), (0.7, 4.35), (6.95, 4.35)]
     for (gx, gy), (icon, head, theme, body) in zip(grid, cards):
         accent = THEMES[theme]["bright"]
-        shape(s, MSO_SHAPE.ROUNDED_RECTANGLE, Inches(gx), Inches(gy),
-              Inches(5.7), Inches(2.05), fill=PANEL, radius=0.09)
-        shape(s, MSO_SHAPE.RECTANGLE, Inches(gx), Inches(gy + 0.16),
-              Inches(0.07), Inches(1.73), fill=accent)
-        icon_circle(s, icon, gx + 1.0, gy + 1.02, 1.15)
+        shape(s, MSO_SHAPE.RECTANGLE, Inches(gx), Inches(gy),
+              Inches(5.7), Inches(2.05), fill=PANEL)
+        shape(s, MSO_SHAPE.RECTANGLE, Inches(gx), Inches(gy),
+              Inches(0.07), Inches(2.05), fill=accent)
+        icon_tile(s, icon, gx + 1.0, gy + 1.02, 1.15)
         text(s, Inches(gx + 1.85), Inches(gy + 0.38), Inches(3.65),
              Inches(0.42), head, size=17, bold=True, color=accent)
         text(s, Inches(gx + 1.85), Inches(gy + 0.85), Inches(3.65),
@@ -309,13 +303,14 @@ def divider(theme, round_no, title, sub, icons, num, notes=None, size=54):
          size=17, bold=True, color=mix(on, slab, 0.25))
     x = 0.9 + 0.55
     for n in icons:
-        icon_circle(s, n, x, 6.0, 1.1)
+        icon_tile(s, n, x, 6.0, 1.1)
         x += 1.1 + 0.4
 
 
-def question_slide(round_label, q_no, q_total, question, icon, options=None,
-                   hint=None, video=None, notes=None, points="1 point",
-                   q_size=26):
+def question_slide(round_label, q_no, q_total, question, icon=None,
+                   options=None, hint=None, video=None, notes=None,
+                   points="1 point", q_size=26, photo=None, photo_h=None,
+                   photo_border=True):
     s = add_slide(notes=notes)
     edge_bar(s)
     kicker(s, round_label, f"QUESTION {q_no} OF {q_total} · {points.upper()}")
@@ -329,8 +324,8 @@ def question_slide(round_label, q_no, q_total, question, icon, options=None,
         if full_row:
             y = 4.0 if len(options) == 3 else 3.7
             for letter, opt in options:
-                shape(s, MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.7), Inches(y),
-                      Inches(11.93), Inches(0.78), fill=PANEL, radius=0.16)
+                shape(s, MSO_SHAPE.RECTANGLE, Inches(0.7), Inches(y),
+                      Inches(11.93), Inches(0.78), fill=PANEL)
                 chip(s, letter, 0.94, y + 0.16, side=0.46)
                 text(s, Inches(1.62), Inches(y), Inches(10.7), Inches(0.78),
                      opt, size=17, bold=True, color=LIGHT,
@@ -341,74 +336,83 @@ def question_slide(round_label, q_no, q_total, question, icon, options=None,
             grid = [(0.7, gy0), (6.78, gy0), (0.7, gy0 + 1.2),
                     (6.78, gy0 + 1.2)]
             for (gx, gy), (letter, opt) in zip(grid, options):
-                shape(s, MSO_SHAPE.ROUNDED_RECTANGLE, Inches(gx), Inches(gy),
-                      Inches(5.85), Inches(0.95), fill=PANEL, radius=0.14)
+                shape(s, MSO_SHAPE.RECTANGLE, Inches(gx), Inches(gy),
+                      Inches(5.85), Inches(0.95), fill=PANEL)
                 chip(s, letter, gx + 0.27, gy + 0.225)
                 text(s, Inches(gx + 1.02), Inches(gy), Inches(4.6),
                      Inches(0.95), opt, size=18, bold=True, color=LIGHT,
                      anchor=MSO_ANCHOR.MIDDLE)
     else:
-        giant(s, str(q_no), dim, 10.6, 0.45, 2.33, 1.9, size=120)
-        text(s, Inches(0.7), Inches(1.55), Inches(7.9), Inches(4.4),
+        if photo:
+            # borderless art (logos) gets an inset from the slide edge
+            x1 = 13.333 if photo_border else 12.93
+            px, _, _, _ = place_photo(s, photo, 8.0, 0.0, x1, 7.5,
+                                      max_h=photo_h, border=photo_border)
+            qw = px - 0.7 - 0.4
+        else:
+            giant(s, str(q_no), dim, 10.6, 0.45, 2.33, 1.9, size=120)
+            icon_tile(s, icon, 10.85, 4.1, 2.7)
+            qw, px = 7.9, 9.0
+        text(s, Inches(0.7), Inches(1.55), Inches(qw), Inches(4.4),
              question, size=q_size, bold=True, color=PAPER, spacing=1.15)
-        icon_circle(s, icon, 10.85, 4.1, 2.7)
         if video:
-            video_pill(s, "Play the clip", video, 5.95)
+            video_pill(s, "Play the clip", video, 5.95, max_x=px - 0.2)
     if hint:
         text(s, Inches(0.7), Inches(6.45), Inches(11.9), Inches(0.4),
              [[("HINT   ", {"bold": True, "color": bright, "size": 14}),
                (hint, {"size": 14, "color": FOG, "italic": True})]])
 
 
-def answer_slide(round_label, q_no, answer, icon=None, icons=None, fact=None,
+def answer_slide(round_label, q_no, answer, icon=None, fact=None,
                  video=None, notes=None, a_size=38, photo=None, credit=None,
-                 photo_h=None):
+                 photo_h=None, photo_border=True):
     s = add_slide(notes=notes)
     edge_bar(s)
     kicker(s, round_label, f"ANSWER · QUESTION {q_no}")
-    text_w = 7.6 if photo else 8.4
+    px = 12.63
+    if photo:
+        names = photo if isinstance(photo, list) else [photo]
+        if len(names) == 1:
+            bot = 7.02 if credit else 7.5
+            x, y, w, h = place_photo(s, names[0], 7.7, 0.2 if credit else 0.0,
+                                     13.333, bot, max_h=photo_h,
+                                     border=photo_border)
+            px = x
+            credit_y = y + h + 0.07
+        else:
+            x1, _, _, _ = place_photo(s, names[0], 7.9, 0.15, 13.333, 3.70)
+            x2, y2, w2, h2 = place_photo(s, names[1], 7.9, 3.80, 13.333, 7.35)
+            px = min(x1, x2)
+            credit_y = min(y2 + h2 + 0.07, 7.18)
+        if credit:
+            text(s, Inches(px), Inches(credit_y), Inches(13.333 - px - 0.2),
+                 Inches(0.3), credit, size=8.5, color=FOG,
+                 align=PP_ALIGN.RIGHT)
+    elif icon:
+        icon_tile(s, icon, 10.85, 3.55, 3.0)
+        px = 9.2
+    text_w = px - 0.7 - 0.4
     text(s, Inches(0.7), Inches(1.45), Inches(text_w), Inches(1.7), answer,
          size=a_size, bold=True, color=CURRENT["bright"], spacing=1.05)
     if fact:
-        fact_panel(s, fact, 0.7, 3.65, 7.6 if photo else 7.9, 2.95)
-    if photo:
-        names = photo if isinstance(photo, list) else [photo]
-        credit_y = 6.44
-        if len(names) == 1:
-            h = photo_h or 4.9
-            y = 1.45 + (4.9 - h) / 2
-            photo_frame(s, names[0], 8.75, y, 3.88, h)
-            credit_y = y + h + 0.08
-        else:
-            photo_frame(s, names[0], 8.75, 1.45, 3.88, 2.33)
-            photo_frame(s, names[1], 8.75, 4.02, 3.88, 2.33)
-        if credit:
-            text(s, Inches(8.75), Inches(credit_y), Inches(3.88),
-                 Inches(0.3), credit, size=8.5, color=FOG,
-                 align=PP_ALIGN.RIGHT)
-    elif icons:
-        d, gap = 1.28, 0.22
-        cy = 3.55
-        cx = 10.85 - (len(icons) - 1) * (d + gap) / 2
-        for n in icons:
-            icon_circle(s, n, cx, cy, d)
-            cx += d + gap
-    elif icon:
-        icon_circle(s, icon, 10.85, 3.55, 3.0)
+        fact_panel(s, fact, 0.7, 3.65, text_w, 2.95)
     if video:
-        video_pill(s, "Watch the story", video, 2.85)
+        video_pill(s, "Watch the story", video, 2.85, max_x=px - 0.2)
 
 
 def closing_slide():
+    global CURRENT
+    CURRENT = THEMES["R2"]
     s = add_slide(notes="Count the points and announce the winning team.")
-    icon_row(s, ["trophy"], 1.75, d=1.7)
-    text(s, Inches(0.7), Inches(2.9), Inches(11.93), Inches(2.2),
-         ["THANK YOU", "FOR PLAYING"], size=60, color=PAPER,
-         align=PP_ALIGN.CENTER, font=DISPLAY, spacing=1.02)
-    text(s, Inches(1.5), Inches(5.35), Inches(10.33), Inches(0.5),
+    place_photo(s, "confetti_popper.jpg", 3.9, 0.55, 9.43, 3.3,
+                anchor="center")
+    text(s, Inches(0.7), Inches(3.55), Inches(11.93), Inches(2.0),
+         ["THANK YOU", "FOR PLAYING"], size=54, color=PAPER,
+         align=PP_ALIGN.CENTER, font=DISPLAY, spacing=1.04)
+    text(s, Inches(1.5), Inches(5.75), Inches(10.33), Inches(0.5),
          "Time to count the points", size=19, bold=True,
          color=THEMES["R2"]["bright"], align=PP_ALIGN.CENTER)
-    tricolour_bars(s, 6.25)
+    tricolour_bars(s, 6.5)
 
 
 # ------------------------------------------------------------------ deck ---
@@ -484,7 +488,9 @@ question_slide(
              ("C", "The aircraft meant to transport him never arrived")],
     notes="Background video: https://www.youtube.com/watch?v=N83Idy9IOmU")
 answer_slide(
-    R1, 5, "A — The crate was improperly labelled", a_size=32, icon="crate",
+    R1, 5, "A — The crate was improperly labelled", a_size=32,
+    photo="dikko_crate_stansted_1984.jpg",
+    credit="Press photo, Stansted 1984 — likely PA Images",
     fact="With no official diplomatic markings, customs officers at "
          "Stansted were entitled to open the crate — and found Dikko "
          "unconscious, accompanied by an anaesthetist.",
@@ -517,7 +523,8 @@ question_slide(
               "tried a different strategy: entering a song that simply "
               "declared victory before the contest was even over.\n\nWhat "
               "was the title of the song?",
-    "microphone", q_size=22,
+    photo="eurovision_logo_white.png", photo_h=1.35, photo_border=False,
+    q_size=22,
     video="youtube.com/watch?v=DBAdOlQPbwg",
     notes="Video: https://www.youtube.com/watch?v=DBAdOlQPbwg — decide "
           "which part of the clip to show. Option: move this question to a "
@@ -535,7 +542,7 @@ question_slide(
     R2, 2, 8, "Two Lithuanian mountaineers carried a symbolic national "
               "object to the summit of Mount Everest and scattered it from "
               "the world's highest peak.\n\nWhat was it?",
-    "climber",
+    photo="mount_everest.jpg",
     notes="Tell the full story and the exact years out loud; keep the slide "
           "short.")
 answer_slide(
@@ -552,7 +559,7 @@ question_slide(
               "ranked second in Europe in butter and bacon production — "
               "despite being one of the poorest countries on the "
               "continent.\n\nWhich country ranked first?",
-    "butter", q_size=22,
+    photo="butter.jpg", q_size=22,
     hint="Think of a recent Council Presidency.")
 answer_slide(
     R2, 3, "Denmark", photo="interwar_lithuania_1930s.jpg",
@@ -566,7 +573,7 @@ question_slide(
               "In Lithuania, one tradition involves searching for a "
               "mythical flower that supposedly blooms only on that "
               "night.\n\nWhich flower?",
-    "bonfire")
+    photo="midsummer_bonfire.jpg")
 answer_slide(
     R2, 4, "The fern flower",
     photo="fern_fiddleheads.jpg", credit="Photo: Wikimedia Commons",
@@ -579,7 +586,7 @@ question_slide(
               "democracy.\n\nLithuanian women gained something that many "
               "women in Western Europe had to wait decades for.\n\nWhat "
               "was it?",
-    "parliament",
+    photo="signatories_1918.jpg",
     notes="Alternative version: show the centenary stamp (with some details "
           "removed) and ask what occasion it marks. Stamp: "
           "https://manoteises.lt/straipsnis/isleidziamas-pasto-zenklas-"
@@ -598,7 +605,7 @@ question_slide(
               "and bought several unusual souvenirs.\n\nDuring a storm at "
               "sea, terrified sailors blamed the bad weather on them and "
               "threw them overboard.\n\nWhat were the souvenirs?",
-    "wave", q_size=24)
+    photo="aswan_egypt_nile.jpg", q_size=24)
 answer_slide(
     R2, 6, "Egyptian mummies",
     photo="radvila_the_orphan.jpg",
@@ -615,7 +622,7 @@ question_slide(
               "Europe as street food.\n\nThe video reflects a moment when "
               "Lithuania was preparing for a major change. What event was "
               "approaching?",
-    "dumpling", q_size=22,
+    photo="cepelinai.jpg", q_size=22,
     video="youtube.com/watch?v=YgvHcenDYcU",
     notes="Video: https://www.youtube.com/watch?v=YgvHcenDYcU — add English "
           "subtitles to the clip. Consider whether to keep “early 2000s” in "
@@ -640,19 +647,20 @@ answer_slide(
 
 # ===== ROUND 3 ==============================================================
 R3 = "ROUND 3 · ENVIRONMENT & NATURE"
+# NB: no beaver or headphones on the divider — both are answers in this round
 divider("R3", "ROUND 3", "Environment & Nature",
         "4 questions · 1 point each",
-        ["headphones", "fern", "beaver"], num="3", size=50)
+        ["tree", "fern", "deer"], num="3", size=50)
 
 question_slide(
     R3, 1, 4, "In 2013 Metallica became the first band to perform on all "
               "seven continents.\n\nDuring their Antarctic concert, the "
               "audience used 120 of what?",
-    "guitar")
+    photo="metallica_freeze_em_all.jpg")
 answer_slide(
     R3, 1, "Headphones",
-    photo="metallica_freeze_em_all.jpg",
-    credit="Artwork: © Blackened Recordings",
+    photo="metallica_antarctica_2013.jpg",
+    credit="Photo: Metallica (freezeemall.com)",
     fact="To comply with Antarctic environmental rules, the band played "
          "without amplifiers — the audience of about 120 listened through "
          "headphones. The concert was fittingly called “Freeze 'Em All”.")
@@ -662,12 +670,11 @@ question_slide(
               "Jane Goodall — devoted their careers to studying these "
               "animals in the wild.\n\nCollectively, they became known as "
               "the “Trimates”.\n\nWhat group of animals are these?",
-    "microscope", q_size=24,
-    notes="Photo idea: https://www.themarysue.com/the-trimates-three-women-"
-          "that-made-science-history/")
+    photo="trimates_goodall_fossey_galdikas.jpg", q_size=24)
 answer_slide(
     R3, 2, "Great apes",
-    photo="trimates_goodall_fossey_galdikas.jpg",
+    photo="great_apes_collage.jpg",
+    credit="Collage: The New York Times",
     fact="Goodall (chimpanzees), Fossey (gorillas) and Galdikas "
          "(orangutans) were recruited by Louis Leakey — hence also "
          "“Leakey's Angels”. Galdikas, of Lithuanian descent, still works "
@@ -677,7 +684,7 @@ question_slide(
     R3, 3, 4, "Which EU law unexpectedly entered the headlines after the "
               "deaths of four US soldiers, whose vehicle sank in a military "
               "training area near the Lithuanian–Belarusian border?",
-    "newspaper")
+    photo="pabrade_recovery_2025.jpg")
 answer_slide(
     R3, 3, "The Nature Restoration Law", a_size=34,
     photo="cepkeliai_marsh.jpg", credit="Photo: Wikimedia Commons",
@@ -689,7 +696,7 @@ question_slide(
     R3, 4, 4, "This animal is often called an “ecosystem engineer” because "
               "it creates wetlands that benefit countless other "
               "species.\n\nWhat animal is it?",
-    "tools")
+    photo="pond_ecosystem.jpg")
 answer_slide(
     R3, 4, "The beaver", photo="beaver_at_dam.jpg",
     fact="Beaver dams create wetlands that store water, filter pollution "
@@ -713,7 +720,9 @@ question_slide(
     notes="Can be made multiple choice to make it easier — or harder, by "
           "also asking what the problem was.")
 answer_slide(
-    RB, 1, "The Waste Framework Directive", a_size=34, icon="recycle")
+    RB, 1, "The Waste Framework Directive", a_size=34,
+    photo="waste_sorting_bins.png",
+    credit="Illustration: EPRS briefing, European Parliament")
 
 question_slide(
     RB, 2, 3, "During a Coreper I meeting, the Council was split on a "
@@ -739,14 +748,15 @@ question_slide(
               "waters and ending with a widely reported demonstration in "
               "Helsinki.\n\nThe Soviet Union tried to derail the voyage. "
               "What did it do?",
-    "ship", q_size=22,
+    photo="baltic_star_birger_jarl.jpg", q_size=22,
     notes="Background: per Tomas Venclova, Aleksandras Štromas was the "
           "cruise's spiritus movens; the Baltic Tribunal also took place in "
-          "1985. Keep names off the slide. Ship photo to be added later.")
+          "1985. Keep names off the slide. Ship photo: Wikimedia Commons "
+          "(M/S Birger Jarl, sailed as Baltic Star).")
 answer_slide(
     RB, 3, "A rumour that a bomb was on board", a_size=32,
-    photo="baltic_star_birger_jarl.jpg", photo_h=2.6,
-    credit="Photo: Wikimedia Commons",
+    photo="baltic_cruise_cartoon_1985.jpg",
+    credit="Cartoon, 1985 — exile press, via X",
     fact="The rumour failed: the cruise went ahead, and the Helsinki "
          "demonstration was reported across the Scandinavian and wider "
          "European press — a loud reminder that the Baltic states had not "
@@ -754,6 +764,72 @@ answer_slide(
 
 closing_slide()
 
+
+# --------------------------------------------------------- font embedding --
+def embed_fonts(path):
+    """Embed the Montserrat faces (fonts/, SIL OFL 1.1) into the .pptx so
+    the deck renders identically on machines without the fonts installed."""
+    faces = [  # (typeface, slot, ttf) — slot order: regular, bold, italic
+        ("Montserrat", "regular", "fonts/Montserrat-Regular.ttf"),
+        ("Montserrat", "bold", "fonts/Montserrat-Bold.ttf"),
+        ("Montserrat", "italic", "fonts/Montserrat-Italic.ttf"),
+        ("Montserrat Black", "regular", "fonts/Montserrat-Black.ttf"),
+    ]
+    P = "http://schemas.openxmlformats.org/presentationml/2006/main"
+    R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    CT = "http://schemas.openxmlformats.org/package/2006/content-types"
+    REL = "http://schemas.openxmlformats.org/package/2006/relationships"
+
+    def xml(root):
+        return etree.tostring(root, xml_declaration=True, encoding="UTF-8",
+                              standalone=True)
+
+    tmp = path + ".tmp"
+    with zipfile.ZipFile(path) as zin, \
+            zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+        for n in zin.namelist():
+            data = zin.read(n)
+            if n == "[Content_Types].xml":
+                root = etree.fromstring(data)
+                d = etree.SubElement(root, f"{{{CT}}}Default")
+                d.set("Extension", "fntdata")
+                d.set("ContentType", "application/x-fontdata")
+                data = xml(root)
+            elif n == "ppt/_rels/presentation.xml.rels":
+                root = etree.fromstring(data)
+                for i in range(len(faces)):
+                    rel = etree.SubElement(root, f"{{{REL}}}Relationship")
+                    rel.set("Id", f"rIdFont{i + 1}")
+                    rel.set("Type", R + "/font")
+                    rel.set("Target", f"fonts/font{i + 1}.fntdata")
+                data = xml(root)
+            elif n == "ppt/presentation.xml":
+                root = etree.fromstring(data)
+                root.set("embedTrueTypeFonts", "1")
+                lst = etree.Element(f"{{{P}}}embeddedFontLst")
+                by_face = {}
+                for i, (face, slot, _) in enumerate(faces):
+                    ef = by_face.get(face)
+                    if ef is None:
+                        ef = etree.SubElement(lst, f"{{{P}}}embeddedFont")
+                        fo = etree.SubElement(ef, f"{{{P}}}font")
+                        fo.set("typeface", face)
+                        fo.set("pitchFamily", "34")
+                        fo.set("charset", "0")
+                        by_face[face] = ef
+                    sl = etree.SubElement(ef, f"{{{P}}}{slot}")
+                    sl.set(f"{{{R}}}id", f"rIdFont{i + 1}")
+                notes_sz = root.find(f"{{{P}}}notesSz")
+                root.insert(list(root).index(notes_sz) + 1, lst)
+                data = xml(root)
+            zout.writestr(n, data)
+        for i, (_, _, ttf) in enumerate(faces):
+            zout.write(ttf, f"ppt/fonts/font{i + 1}.fntdata")
+    os.replace(tmp, path)
+
+
 OUT = "Quiz_Night_2026-06-16.pptx"
 prs.save(OUT)
-print(f"Saved {OUT} with {len(prs.slides._sldIdLst)} slides")
+embed_fonts(OUT)
+print(f"Saved {OUT} with {len(prs.slides._sldIdLst)} slides "
+      "(Montserrat embedded)")

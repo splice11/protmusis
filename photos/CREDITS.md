@@ -26,7 +26,31 @@ traced offline — please verify before any use outside the internal quiz.
 | `cepkeliai_marsh.jpg` | Čepkeliai bog from Musteika | R3 A3 | Wikimedia Commons, "Čepkeliai (didžioji bala) nuo Musteikos" |
 | `beaver_at_dam.jpg` | Eurasian beaver at its dam | R3 A4 | Stock photo via a Future plc site (LiveScience-style CDN) — **to confirm** |
 | `europa_building_room.jpg` | Coreper meeting room, Europa building | Bonus A2 | Philippe Samyn and Partners / EU Council; file via Dezeen — **to confirm** |
-| `baltic_star_birger_jarl.jpg` | M/S Birger Jarl in Stockholm — sailed as *Baltic Star* 1973–2002 | Bonus A3 | Wikimedia Commons, "MS Birger Jarl" |
+| `baltic_star_birger_jarl.jpg` | M/S Birger Jarl in Stockholm — sailed as *Baltic Star* 1973–2002 | Bonus Q3 | Wikimedia Commons, "MS Birger Jarl" |
 
-All photos were resized to max 1600 px and converted to JPEG
-(the enlargement map kept as PNG for crisp edges).
+## Second batch (June 2026 upload)
+
+Sources reconstructed from filename/CDN patterns and web research. Items
+from social-media CDNs (Facebook/Twitter hashes) cannot be traced to the
+original publication — those credits are best guesses.
+
+| File | Shows | Slide | Source / attribution |
+|---|---|---|---|
+| `eurovision_logo_white.png` | Eurovision Song Contest wordmark (recoloured white for the dark deck) | R2 Q1 | Logo © European Broadcasting Union; PNG render of Wikimedia's `Eurovision_Song_Contest_2025.svg` |
+| `mount_everest.jpg` | Mount Everest, north face | R2 Q2 | Via Encyclopædia Britannica's Everest article asset — **to confirm** |
+| `butter.jpg` | Butter on a board | R2 Q3 | Stock photo, source untraced — **to confirm** |
+| `midsummer_bonfire.jpg` | Joninės bonfire | R2 Q4 | Lithuanian website ("Joninių laužas"), uncredited — **to confirm** |
+| `signatories_1918.jpg` | Signatories of the Act of Independence of Lithuania, 1918 | R2 Q5 | Historic photograph (public domain by age) |
+| `aswan_egypt_nile.jpg` | The Nile at Aswan with pyramids (stock composite) | R2 Q6 | Stock image, source untraced — **to confirm** |
+| `cepelinai.jpg` | Cepelinai | R2 Q7 | The Spruce Eats, "Lithuanian Cepelinai (Zeppelin Dumplings)" |
+| `dikko_crate_stansted_1984.jpg` | The Dikko crates at Stansted, July 1984 | R1 A5 | 1984 press photo — likely PA Images — **to confirm** |
+| `metallica_antarctica_2013.jpg` | Metallica's "Freeze 'Em All" concert under the dome, Antarctica, Dec 2013 | R3 A1 | Official tour photo via Metallica's social media — **to confirm** |
+| `great_apes_collage.jpg` | Collage of primate photos | R3 A2 | The New York Times, "Matter" column (C. Zimmer, Apr 2022); images via Getty/Minden/NPL |
+| `pabrade_recovery_2025.jpg` | Recovery of the submerged M88 vehicle near Pabradė, March 2025 | R3 Q3 | Via NBC News — likely Lithuanian Armed Forces handout — **to confirm** |
+| `pond_ecosystem.jpg` | Natural swimming pond / water garden | R3 Q4 | Water-garden vendor site, uncredited — **to confirm** |
+| `waste_sorting_bins.png` | Six colour-coded waste bins (illustration) | Bonus A1 | Cover art of EPRS Briefing PE 757572 (Waste Framework Directive revision), European Parliament; likely Adobe Stock |
+| `baltic_cruise_cartoon_1985.jpg` | Cartoon: Soviet submariners watch the Baltic Peace and Freedom Cruise | Bonus A3 | Editorial cartoon, 1985, Baltic exile press; cartoonist unidentified (via X/Twitter) — **to confirm** |
+| `confetti_popper.jpg` | Confetti party popper | Closing | Stock photo, source untraced — **to confirm** |
+
+All photos were converted to JPEG, max 1920 px (flat artwork kept as PNG
+for crisp edges; the Eurovision logo recoloured from black to white).

@@ -34,6 +34,7 @@ ICONS = {
     "scales": "2696", "tools": "1F6E0", "beaver": "1F9AB",
     "speech": "1F4AC", "recycle": "267B", "abacus": "1F9EE",
     "hand": "270B", "ship": "1F6A2", "scroll": "1F4DC",
+    "deer": "1F98C", "tree": "1F332", "confetti": "1F389",
     "teams": "1F465", "target": "1F3AF", "memo": "1F4DD",
     "no_phone": "1F4F5", "brain": "1F9E0", "bulb": "1F4A1",
     "detective": "1F575",
