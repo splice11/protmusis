@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the Quiz Night deck (16 June, Permanent Representation of
+"""Generate the Trivia Night deck (16 June, Permanent Representation of
 Lithuania to the EU) from the questions drafted in `Klausimai protmūšiui.docx`.
 
 Format: one slide per question, followed by one slide with the answer.
@@ -10,7 +10,7 @@ Question illustrations are real photos from `photos/` where available
 identically on machines without the fonts installed.
 
 Usage:  pip install python-pptx Pillow && python3 generate_slides.py
-Output: Quiz_Night_2026-06-16.pptx
+Output: Trivia_Night_2026-06-16.pptx
 """
 
 import os
@@ -65,7 +65,7 @@ prs.slide_width = SLIDE_W
 prs.slide_height = SLIDE_H
 BLANK = prs.slide_layouts[6]
 
-FOOTER = "Quiz Night · 16 June 2026 · Permanent Representation of Lithuania to the EU"
+FOOTER = "Trivia Night · 16 June 2026 · Permanent Representation of Lithuania to the EU"
 
 
 # ---------------------------------------------------------------- helpers --
@@ -182,6 +182,10 @@ def place_photo(slide, name, x0, y0, x1, y1, max_h=None, border=True,
     path = f"photos/{name}"
     src_w, src_h = Image.open(path).size
     aspect = src_w / src_h
+    # keep the accent border fully on the slide: inset the box from the
+    # slide edges by a hair so the outline is never clipped
+    x1 = min(x1, 13.29)
+    y0, y1 = max(y0, 0.04), min(y1, 7.46)
     bw, bh = x1 - x0, y1 - y0
     if bw / bh > aspect:
         h, w = bh, bh * aspect
@@ -244,17 +248,18 @@ def title_slide():
         "names of Lithuanian rivers and lakes at the door."))
     dim = mix(THEMES["R2"]["bright"], BG, 0.84)
     giant(s, "?", dim, 10.4, 0.0, 2.6, 3.4, size=230)
-    giant(s, "?", dim, 0.35, 4.1, 2.6, 3.4, size=230, align=PP_ALIGN.LEFT)
+    giant(s, "?", dim, 0.15, 5.35, 2.3, 2.15, size=190, align=PP_ALIGN.LEFT)
     text(s, Inches(0.8), Inches(2.2), Inches(11.73), Inches(0.45),
          "BRUSSELS · 16 JUNE 2026", size=16, bold=True,
          color=THEMES["R2"]["bright"], align=PP_ALIGN.CENTER)
     text(s, Inches(0.4), Inches(2.7), Inches(12.53), Inches(1.65),
-         "QUIZ NIGHT", size=92, color=PAPER, align=PP_ALIGN.CENTER,
+         "TRIVIA NIGHT", size=92, color=PAPER, align=PP_ALIGN.CENTER,
          font=DISPLAY)
     tricolour_bars(s, 4.6)
-    text(s, Inches(1.5), Inches(5.05), Inches(10.33), Inches(0.45),
-         "Permanent Representation of Lithuania to the European Union",
-         size=16, color=FOG, align=PP_ALIGN.CENTER)
+    text(s, Inches(1.5), Inches(4.95), Inches(10.33), Inches(0.9),
+         ["Permanent Representation of Lithuania to the European Union",
+          [("Environment Team", {"bold": True, "color": LIGHT})]],
+         size=16, color=FOG, align=PP_ALIGN.CENTER, spacing=1.3)
 
 
 def rules_slide():
@@ -828,7 +833,7 @@ def embed_fonts(path):
     os.replace(tmp, path)
 
 
-OUT = "Quiz_Night_2026-06-16.pptx"
+OUT = "Trivia_Night_2026-06-16.pptx"
 prs.save(OUT)
 embed_fonts(OUT)
 print(f"Saved {OUT} with {len(prs.slides._sldIdLst)} slides "
