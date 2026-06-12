@@ -214,8 +214,12 @@ def kicker(slide, left, right=None):
 
 
 def video_pill(slide, label, url, y, max_x=12.63):
+    # a real absolute hyperlink — bare "youtube.com/…" text renders fine
+    # but resolves as a relative (file://) path when clicked in the PDF
+    href = url if url.startswith("http") else "https://www." + url
     pill = shape(slide, MSO_SHAPE.RECTANGLE, Inches(0.7), Inches(y),
                  Inches(2.55), Inches(0.46), fill=CURRENT["bright"])
+    pill.click_action.hyperlink.address = href
     tf = pill.text_frame
     tf.word_wrap = False
     p = tf.paragraphs[0]
@@ -226,8 +230,19 @@ def video_pill(slide, label, url, y, max_x=12.63):
     r.font.size = Pt(13)
     r.font.bold = True
     r.font.color.rgb = BG
-    text(slide, Inches(3.45), Inches(y + 0.11), Inches(max_x - 3.45),
-         Inches(0.3), url, size=12, color=FOG)
+    r.hyperlink.address = href
+    tb = slide.shapes.add_textbox(Inches(3.45), Inches(y + 0.11),
+                                  Inches(max_x - 3.45), Inches(0.3))
+    tf2 = tb.text_frame
+    tf2.word_wrap = True
+    tf2.margin_left = tf2.margin_right = 0
+    tf2.margin_top = tf2.margin_bottom = 0
+    r2 = tf2.paragraphs[0].add_run()
+    r2.text = url
+    r2.font.name = FONT
+    r2.font.size = Pt(12)
+    r2.font.color.rgb = FOG
+    r2.hyperlink.address = href
 
 
 def fact_panel(slide, fact, x, y, w, h):
