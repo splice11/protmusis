@@ -69,14 +69,15 @@ FOOTER = "Trivia Night · 16 June 2026 · Permanent Representation of Lithuania 
 
 
 # ---------------------------------------------------------------- helpers --
-def add_slide(bg=None, notes=None, footer=None):
+def add_slide(bg=None, notes=None, footer=None, show_footer=True):
     slide = prs.slides.add_slide(BLANK)
     slide.background.fill.solid()
     slide.background.fill.fore_color.rgb = bg or BG
     if notes:
         slide.notes_slide.notes_text_frame.text = notes
-    text(slide, Inches(0.7), Inches(7.08), Inches(10), Inches(0.3), FOOTER,
-         size=9.5, color=footer or mix(FOG, BG, 0.35))
+    if show_footer:
+        text(slide, Inches(0.7), Inches(7.08), Inches(10), Inches(0.3),
+             FOOTER, size=9.5, color=footer or mix(FOG, BG, 0.35))
     return slide
 
 
@@ -243,7 +244,9 @@ def fact_panel(slide, fact, x, y, w, h):
 
 # ----------------------------------------------------------------- slides --
 def title_slide():
-    s = add_slide(notes=(
+    # no footer here: the date and venue are on the slide itself, and the
+    # ghost question mark bleeds through the footer's spot
+    s = add_slide(show_footer=False, notes=(
         "Host notes: welcome everyone and explain the team draw — slips with "
         "names of Lithuanian rivers and lakes at the door."))
     dim = mix(THEMES["R2"]["bright"], BG, 0.84)

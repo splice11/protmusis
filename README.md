@@ -15,7 +15,9 @@ English for an international audience. Production notes from the draft
 |---|---|
 | `Trivia_Night_2026-06-16.pptx` | The deck (49 slides, 16:9) — open in PowerPoint |
 | `Trivia_Night_2026-06-16.pdf` | PDF preview for quick review |
+| `Trivia_Night_2026-06-16_run_of_show.docx` | Run of show: every round/question/answer in presentation order, plus the changes made relative to the draft |
 | `generate_slides.py` | Builds the deck: `pip install python-pptx && python3 generate_slides.py` |
+| `generate_rundown.py` | Builds the run-of-show docx: `pip install python-docx && python3 generate_rundown.py` |
 | `fetch_assets.py` | Downloads/renders the illustrations into `assets/`: `pip install cairosvg && python3 fetch_assets.py` |
 | `assets/` | Rendered illustrations (committed, so the deck builds offline) |
 | `Klausimai protmūšiui.docx` | Original question draft |
