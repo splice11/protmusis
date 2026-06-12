@@ -28,11 +28,14 @@ English for an international audience. Production notes from the draft
 - Full-bleed colour divider slides with oversized numerals; question slides
   carry a giant question number and a colour-coded edge bar; answers are
   revealed in the round colour.
-- Windows-native typography (Arial Black display + Calibri body) — opens
-  correctly in any modern PowerPoint with no font substitution.
-- Illustrations are [OpenMoji](https://openmoji.org) (CC BY-SA 4.0),
-  rendered at high resolution — one consistent visual system across all
-  49 slides.
+- Sharp, rectangular geometry throughout — no rounded corners.
+- [Montserrat](https://github.com/JulietaUla/Montserrat) typography
+  (SIL OFL 1.1), **embedded in the .pptx** — the deck renders identically
+  on machines that don't have the font installed.
+- Real photographs (`photos/`, see `photos/CREDITS.md`) illustrate most
+  questions and answers, placed at native aspect ratio — never cropped —
+  and sized to fill the right side of the slide; remaining icons are
+  [OpenMoji](https://openmoji.org) (CC BY-SA 4.0).
 
 ## Deck structure
 
