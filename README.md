@@ -22,9 +22,14 @@ English for an international audience. Production notes from the draft
 
 ## Design
 
-- Windows-native typography (Calibri throughout) — opens correctly in any
-  modern PowerPoint with no font substitution.
-- Dark ink title/divider slides, white content slides, amber accent.
+- Bold dark theme: near-black slides, with one saturated colour per round —
+  EU blue for Round 1, then the Lithuanian tricolour (yellow, green, red)
+  for Rounds 2–3 and the bonus round.
+- Full-bleed colour divider slides with oversized numerals; question slides
+  carry a giant question number and a colour-coded edge bar; answers are
+  revealed in the round colour.
+- Windows-native typography (Arial Black display + Calibri body) — opens
+  correctly in any modern PowerPoint with no font substitution.
 - Illustrations are [OpenMoji](https://openmoji.org) (CC BY-SA 4.0),
   rendered at high resolution — one consistent visual system across all
   49 slides.

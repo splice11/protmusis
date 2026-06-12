@@ -20,20 +20,40 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Emu, Inches, Pt
 
 # ---------------------------------------------------------------- palette --
-INK = RGBColor(0x1B, 0x1F, 0x29)        # near-black ink (dark slides, text)
-INK_SOFT = RGBColor(0x2A, 0x30, 0x3E)   # panels on dark slides
-PAPER = RGBColor(0xFF, 0xFF, 0xFF)      # content slide background
-CARD = RGBColor(0xF5, 0xF2, 0xEB)       # option cards / fact panels
-CIRCLE = RGBColor(0xF5, 0xF0, 0xE4)     # icon circles
-AMBER = RGBColor(0xE8, 0xA3, 0x3D)      # accent (shapes, dark-slide text)
-AMBER_DEEP = RGBColor(0xA8, 0x6A, 0x14) # accent text on white
-MUTED = RGBColor(0x6E, 0x75, 0x82)      # secondary text on white
-FOG = RGBColor(0x9B, 0xA3, 0xB2)        # secondary text on dark
-FRAME = RGBColor(0xE3, 0xDE, 0xD3)      # photo frame outline
+BG = RGBColor(0x0B, 0x0E, 0x15)         # near-black background (every slide)
+PANEL = RGBColor(0x17, 0x1C, 0x27)      # option cards / fact panels
+PAPER = RGBColor(0xFF, 0xFF, 0xFF)      # headline text
+LIGHT = RGBColor(0xDD, 0xE2, 0xEB)      # body text on dark
+FOG = RGBColor(0x95, 0x9E, 0xAF)        # secondary text on dark
+INK = RGBColor(0x10, 0x13, 0x18)        # text on bright slabs
+CIRCLE = RGBColor(0xF7, 0xF3, 0xE9)     # icon circles
+
+
+def mix(a, b, t):
+    """Blend colour a toward colour b by factor t (0..1)."""
+    return RGBColor(*(round(a[i] + (b[i] - a[i]) * t) for i in range(3)))
+
+
+# One saturated colour per round: EU blue, then the Lithuanian tricolour.
+# slab = full-bleed divider background · bright = accent on dark slides ·
+# on = text colour that reads on the slab.
+THEMES = {
+    "R1": {"slab": RGBColor(0x0A, 0x32, 0x8C),
+           "bright": RGBColor(0x7B, 0xA7, 0xFF), "on": PAPER},
+    "R2": {"slab": RGBColor(0xFD, 0xB9, 0x13),
+           "bright": RGBColor(0xFF, 0xC9, 0x2E), "on": INK},
+    "R3": {"slab": RGBColor(0x00, 0x6A, 0x44),
+           "bright": RGBColor(0x46, 0xD2, 0x90), "on": PAPER},
+    "RB": {"slab": RGBColor(0xC1, 0x27, 0x2D),
+           "bright": RGBColor(0xFF, 0x70, 0x61), "on": PAPER},
+}
+TRICOLOUR = [THEMES["R2"]["slab"], THEMES["R3"]["slab"], THEMES["RB"]["slab"]]
+CURRENT = THEMES["R2"]  # active round theme; dividers switch it
 
 SLIDE_W = Inches(13.333)
 SLIDE_H = Inches(7.5)
 FONT = "Calibri"
+DISPLAY = "Arial Black"
 
 prs = Presentation()
 prs.slide_width = SLIDE_W
@@ -44,14 +64,14 @@ FOOTER = "Quiz Night · 16 June 2026 · Permanent Representation of Lithuania to
 
 
 # ---------------------------------------------------------------- helpers --
-def add_slide(dark=False, notes=None):
+def add_slide(bg=None, notes=None, footer=None):
     slide = prs.slides.add_slide(BLANK)
     slide.background.fill.solid()
-    slide.background.fill.fore_color.rgb = INK if dark else PAPER
+    slide.background.fill.fore_color.rgb = bg or BG
     if notes:
         slide.notes_slide.notes_text_frame.text = notes
     text(slide, Inches(0.7), Inches(7.08), Inches(10), Inches(0.3), FOOTER,
-         size=9.5, color=FOG if dark else MUTED)
+         size=9.5, color=footer or mix(FOG, BG, 0.35))
     return slide
 
 
@@ -69,7 +89,7 @@ def shape(slide, kind, x, y, w, h, fill=None, radius=None):
     return sp
 
 
-def text(slide, x, y, w, h, content, size=16, color=INK, bold=False,
+def text(slide, x, y, w, h, content, size=16, color=LIGHT, bold=False,
          align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP, spacing=None,
          space_after=None, font=FONT):
     """content: str | list of paragraphs; a paragraph is str | list of
@@ -110,6 +130,44 @@ def icon_circle(slide, name, cx, cy, d):
                              pic, pic)
 
 
+def giant(slide, txt, color, x, y, w, h, size, align=PP_ALIGN.RIGHT,
+          anchor=MSO_ANCHOR.TOP):
+    """Oversized display glyph (question numbers, divider numerals)."""
+    text(slide, Inches(x), Inches(y), Inches(w), Inches(h), txt, size=size,
+         color=color, align=align, anchor=anchor, font=DISPLAY)
+
+
+def edge_bar(slide):
+    """Full-height accent bar on the left edge of content slides."""
+    shape(slide, MSO_SHAPE.RECTANGLE, 0, 0, Inches(0.14), SLIDE_H,
+          fill=CURRENT["bright"])
+
+
+def chip(slide, letter, x, y, side=0.5):
+    """Bright square chip with the option letter."""
+    sp = shape(slide, MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y),
+               Inches(side), Inches(side), fill=CURRENT["bright"], radius=0.3)
+    tf = sp.text_frame
+    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.CENTER
+    r = p.add_run()
+    r.text = letter
+    r.font.name = DISPLAY
+    r.font.size = Pt(15)
+    r.font.color.rgb = BG
+
+
+def tricolour_bars(slide, cy, w=1.05, h=0.14, gap=0.2):
+    """Lithuanian tricolour, centred horizontally at height cy (inches)."""
+    x = (13.333 - (3 * w + 2 * gap)) / 2
+    for c in TRICOLOUR:
+        shape(slide, MSO_SHAPE.RECTANGLE, Inches(x), Inches(cy), Inches(w),
+              Inches(h), fill=c)
+        x += w + gap
+
+
 def photo_frame(slide, name, x, y, w, h):
     """Photo from photos/, cropped to fill the box, with rounded corners."""
     path = f"photos/{name}"
@@ -133,8 +191,8 @@ def photo_frame(slide, name, x, y, w, h):
     gd = etree.SubElement(av, f"{{{ns}}}gd")
     gd.set("name", "adj")
     gd.set("fmla", "val 6000")
-    pic.line.color.rgb = FRAME
-    pic.line.width = Pt(1)
+    pic.line.color.rgb = CURRENT["bright"]
+    pic.line.width = Pt(1.5)
     pic.shadow.inherit = False
     return pic
 
@@ -147,18 +205,18 @@ def icon_row(slide, names, cy, d=1.5, gap=0.55):
         x += d + gap
 
 
-def kicker(slide, left, right=None, dark=False):
+def kicker(slide, left, right=None):
     text(slide, Inches(0.7), Inches(0.55), Inches(8.5), Inches(0.35), left,
-         size=13, bold=True, color=AMBER if dark else AMBER_DEEP)
+         size=13, bold=True, color=CURRENT["bright"])
     if right:
         text(slide, Inches(9.2), Inches(0.55), Inches(3.43), Inches(0.35),
-             right, size=13, bold=True, color=FOG if dark else MUTED,
-             align=PP_ALIGN.RIGHT)
+             right, size=13, bold=True, color=FOG, align=PP_ALIGN.RIGHT)
 
 
 def video_pill(slide, label, url, y):
     pill = shape(slide, MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.7), Inches(y),
-                 Inches(2.55), Inches(0.46), fill=INK, radius=0.5)
+                 Inches(2.55), Inches(0.46), fill=CURRENT["bright"],
+                 radius=0.5)
     tf = pill.text_frame
     tf.word_wrap = False
     p = tf.paragraphs[0]
@@ -168,96 +226,115 @@ def video_pill(slide, label, url, y):
     r.font.name = FONT
     r.font.size = Pt(13)
     r.font.bold = True
-    r.font.color.rgb = PAPER
+    r.font.color.rgb = BG
     text(slide, Inches(3.45), Inches(y + 0.11), Inches(5.5), Inches(0.3), url,
-         size=12, color=MUTED)
+         size=12, color=FOG)
 
 
 def fact_panel(slide, fact, x, y, w, h):
     shape(slide, MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y),
-          Inches(w), Inches(h), fill=CARD, radius=0.07)
-    text(slide, Inches(x + 0.35), Inches(y + 0.3), Inches(w - 0.7),
-         Inches(0.3), "DID YOU KNOW?", size=12.5, bold=True, color=AMBER_DEEP)
-    text(slide, Inches(x + 0.35), Inches(y + 0.72), Inches(w - 0.7),
-         Inches(h - 1.0), fact, size=16, color=INK, spacing=1.15)
+          Inches(w), Inches(h), fill=PANEL, radius=0.07)
+    shape(slide, MSO_SHAPE.RECTANGLE, Inches(x), Inches(y + 0.14),
+          Inches(0.07), Inches(h - 0.28), fill=CURRENT["bright"])
+    text(slide, Inches(x + 0.4), Inches(y + 0.3), Inches(w - 0.75),
+         Inches(0.3), "DID YOU KNOW?", size=12.5, bold=True,
+         color=CURRENT["bright"])
+    text(slide, Inches(x + 0.4), Inches(y + 0.72), Inches(w - 0.75),
+         Inches(h - 1.0), fact, size=16, color=LIGHT, spacing=1.15)
 
 
 # ----------------------------------------------------------------- slides --
 def title_slide():
-    s = add_slide(dark=True, notes=(
+    s = add_slide(notes=(
         "Host notes: welcome everyone and explain the team draw — slips with "
         "names of Lithuanian rivers and lakes at the door."))
-    icon_row(s, ["brain", "bulb", "trophy"], 2.0, d=1.45, gap=0.6)
-    text(s, Inches(1.5), Inches(3.2), Inches(10.33), Inches(1.2),
-         "QUIZ NIGHT", size=64, bold=True, color=PAPER,
-         align=PP_ALIGN.CENTER)
-    text(s, Inches(1.5), Inches(4.5), Inches(10.33), Inches(0.5),
+    dim = mix(THEMES["R2"]["bright"], BG, 0.84)
+    giant(s, "?", dim, 10.4, 0.0, 2.6, 3.4, size=230)
+    giant(s, "?", dim, 0.35, 4.1, 2.6, 3.4, size=230, align=PP_ALIGN.LEFT)
+    text(s, Inches(0.8), Inches(2.2), Inches(11.73), Inches(0.45),
+         "BRUSSELS · 16 JUNE 2026", size=16, bold=True,
+         color=THEMES["R2"]["bright"], align=PP_ALIGN.CENTER)
+    text(s, Inches(0.4), Inches(2.7), Inches(12.53), Inches(1.65),
+         "QUIZ NIGHT", size=92, color=PAPER, align=PP_ALIGN.CENTER,
+         font=DISPLAY)
+    tricolour_bars(s, 4.6)
+    text(s, Inches(1.5), Inches(5.05), Inches(10.33), Inches(0.45),
          "Permanent Representation of Lithuania to the European Union",
-         size=18, bold=True, color=AMBER, align=PP_ALIGN.CENTER)
-    text(s, Inches(1.5), Inches(5.1), Inches(10.33), Inches(0.4),
-         "Brussels · 16 June 2026", size=15, color=FOG,
-         align=PP_ALIGN.CENTER)
+         size=16, color=FOG, align=PP_ALIGN.CENTER)
 
 
 def rules_slide():
     s = add_slide(notes=(
         "Team assignment: everyone draws a slip when entering — the slips "
         "carry names of Lithuanian rivers and lakes."))
-    text(s, Inches(0.7), Inches(0.6), Inches(12), Inches(0.8),
-         "How tonight works", size=40, bold=True, color=INK)
+    text(s, Inches(0.7), Inches(0.6), Inches(12), Inches(0.85),
+         "HOW TONIGHT WORKS", size=38, color=PAPER, font=DISPLAY)
     cards = [
-        ("teams", "Teams",
+        ("teams", "TEAMS", "R1",
          "Draw a slip at the door — the river or lake on it is your team."),
-        ("target", "Rounds",
+        ("target", "ROUNDS", "R2",
          "Three rounds plus a bonus round. One point per question unless "
          "marked otherwise."),
-        ("memo", "Answers",
+        ("memo", "ANSWERS", "R3",
          "Write your answers down — we reveal and score after each round."),
-        ("no_phone", "Fair play",
+        ("no_phone", "FAIR PLAY", "RB",
          "No phones. Diplomatic immunity does not cover googling."),
     ]
     grid = [(0.7, 1.9), (6.95, 1.9), (0.7, 4.35), (6.95, 4.35)]
-    for (gx, gy), (icon, head, body) in zip(grid, cards):
+    for (gx, gy), (icon, head, theme, body) in zip(grid, cards):
+        accent = THEMES[theme]["bright"]
         shape(s, MSO_SHAPE.ROUNDED_RECTANGLE, Inches(gx), Inches(gy),
-              Inches(5.7), Inches(2.05), fill=CARD, radius=0.09)
-        icon_circle(s, icon, gx + 0.95, gy + 1.02, 1.15)
-        text(s, Inches(gx + 1.8), Inches(gy + 0.4), Inches(3.7), Inches(0.4),
-             head, size=19, bold=True, color=INK)
-        text(s, Inches(gx + 1.8), Inches(gy + 0.85), Inches(3.7),
-             Inches(1.05), body, size=14.5, color=MUTED, spacing=1.1)
+              Inches(5.7), Inches(2.05), fill=PANEL, radius=0.09)
+        shape(s, MSO_SHAPE.RECTANGLE, Inches(gx), Inches(gy + 0.16),
+              Inches(0.07), Inches(1.73), fill=accent)
+        icon_circle(s, icon, gx + 1.0, gy + 1.02, 1.15)
+        text(s, Inches(gx + 1.85), Inches(gy + 0.38), Inches(3.65),
+             Inches(0.42), head, size=17, bold=True, color=accent)
+        text(s, Inches(gx + 1.85), Inches(gy + 0.85), Inches(3.65),
+             Inches(1.05), body, size=14.5, color=LIGHT, spacing=1.1)
 
 
-def divider(round_no, title, sub, icons, notes=None):
-    s = add_slide(dark=True, notes=notes)
-    text(s, Inches(1.5), Inches(1.15), Inches(10.33), Inches(0.45), round_no,
-         size=17, bold=True, color=AMBER, align=PP_ALIGN.CENTER)
-    text(s, Inches(0.8), Inches(1.7), Inches(11.73), Inches(1.1), title,
-         size=52, bold=True, color=PAPER, align=PP_ALIGN.CENTER)
-    text(s, Inches(1.5), Inches(2.95), Inches(10.33), Inches(0.45), sub,
-         size=16, color=FOG, align=PP_ALIGN.CENTER)
-    icon_row(s, icons, 4.85, d=1.5, gap=0.65)
+def divider(theme, round_no, title, sub, icons, num, notes=None, size=54):
+    global CURRENT
+    CURRENT = THEMES[theme]
+    slab, on = CURRENT["slab"], CURRENT["on"]
+    s = add_slide(bg=slab, notes=notes, footer=mix(on, slab, 0.5))
+    giant(s, num, mix(on, slab, 0.85), 6.8, 2.0, 5.83, 5.5, size=300,
+          anchor=MSO_ANCHOR.BOTTOM)
+    text(s, Inches(0.9), Inches(1.45), Inches(10), Inches(0.45), round_no,
+         size=17, bold=True, color=mix(on, slab, 0.2))
+    text(s, Inches(0.9), Inches(2.0), Inches(11.5), Inches(2.3),
+         title.upper(), size=size, color=on, font=DISPLAY, spacing=1.02)
+    text(s, Inches(0.9), Inches(4.5), Inches(10), Inches(0.45), sub,
+         size=17, bold=True, color=mix(on, slab, 0.25))
+    x = 0.9 + 0.55
+    for n in icons:
+        icon_circle(s, n, x, 6.0, 1.1)
+        x += 1.1 + 0.4
 
 
 def question_slide(round_label, q_no, q_total, question, icon, options=None,
                    hint=None, video=None, notes=None, points="1 point",
                    q_size=26):
     s = add_slide(notes=notes)
+    edge_bar(s)
     kicker(s, round_label, f"QUESTION {q_no} OF {q_total} · {points.upper()}")
+    bright = CURRENT["bright"]
+    dim = mix(bright, BG, 0.8)
     if options:
-        icon_circle(s, icon, 11.85, 1.85, 1.5)
-        text(s, Inches(0.7), Inches(1.25), Inches(10.1), Inches(2.4),
-             question, size=q_size, color=INK, spacing=1.12)
+        giant(s, str(q_no), dim, 10.6, 0.45, 2.33, 2.1, size=140)
+        text(s, Inches(0.7), Inches(1.25), Inches(9.7), Inches(2.4),
+             question, size=q_size, bold=True, color=PAPER, spacing=1.12)
         full_row = any(len(o[1]) > 38 for o in options)
         if full_row:
             y = 4.0 if len(options) == 3 else 3.7
             for letter, opt in options:
                 shape(s, MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.7), Inches(y),
-                      Inches(11.93), Inches(0.78), fill=CARD, radius=0.16)
-                text(s, Inches(1.05), Inches(y + 0.2), Inches(11.3),
-                     Inches(0.45),
-                     [[(letter + "    ", {"bold": True, "color": AMBER_DEEP,
-                                          "size": 17}),
-                       (opt, {"size": 17, "color": INK})]])
+                      Inches(11.93), Inches(0.78), fill=PANEL, radius=0.16)
+                chip(s, letter, 0.94, y + 0.16, side=0.46)
+                text(s, Inches(1.62), Inches(y), Inches(10.7), Inches(0.78),
+                     opt, size=17, bold=True, color=LIGHT,
+                     anchor=MSO_ANCHOR.MIDDLE)
                 y += 0.94
         else:
             gy0 = 3.55 if len(question) < 130 else 4.15
@@ -265,32 +342,33 @@ def question_slide(round_label, q_no, q_total, question, icon, options=None,
                     (6.78, gy0 + 1.2)]
             for (gx, gy), (letter, opt) in zip(grid, options):
                 shape(s, MSO_SHAPE.ROUNDED_RECTANGLE, Inches(gx), Inches(gy),
-                      Inches(5.85), Inches(0.95), fill=CARD, radius=0.14)
-                text(s, Inches(gx + 0.35), Inches(gy + 0.28), Inches(5.2),
-                     Inches(0.45),
-                     [[(letter + "    ", {"bold": True, "color": AMBER_DEEP,
-                                          "size": 18}),
-                       (opt, {"size": 18, "color": INK})]])
+                      Inches(5.85), Inches(0.95), fill=PANEL, radius=0.14)
+                chip(s, letter, gx + 0.27, gy + 0.225)
+                text(s, Inches(gx + 1.02), Inches(gy), Inches(4.6),
+                     Inches(0.95), opt, size=18, bold=True, color=LIGHT,
+                     anchor=MSO_ANCHOR.MIDDLE)
     else:
+        giant(s, str(q_no), dim, 10.6, 0.45, 2.33, 1.9, size=120)
         text(s, Inches(0.7), Inches(1.55), Inches(7.9), Inches(4.4),
-             question, size=q_size, color=INK, spacing=1.15)
-        icon_circle(s, icon, 10.85, 3.55, 3.0)
+             question, size=q_size, bold=True, color=PAPER, spacing=1.15)
+        icon_circle(s, icon, 10.85, 4.1, 2.7)
         if video:
             video_pill(s, "Play the clip", video, 5.95)
     if hint:
         text(s, Inches(0.7), Inches(6.45), Inches(11.9), Inches(0.4),
-             [[("Hint   ", {"bold": True, "color": AMBER_DEEP, "size": 14}),
-               (hint, {"size": 14, "color": MUTED, "italic": True})]])
+             [[("HINT   ", {"bold": True, "color": bright, "size": 14}),
+               (hint, {"size": 14, "color": FOG, "italic": True})]])
 
 
 def answer_slide(round_label, q_no, answer, icon=None, icons=None, fact=None,
                  video=None, notes=None, a_size=38, photo=None, credit=None,
                  photo_h=None):
     s = add_slide(notes=notes)
+    edge_bar(s)
     kicker(s, round_label, f"ANSWER · QUESTION {q_no}")
     text_w = 7.6 if photo else 8.4
     text(s, Inches(0.7), Inches(1.45), Inches(text_w), Inches(1.7), answer,
-         size=a_size, bold=True, color=AMBER_DEEP, spacing=1.05)
+         size=a_size, bold=True, color=CURRENT["bright"], spacing=1.05)
     if fact:
         fact_panel(s, fact, 0.7, 3.65, 7.6 if photo else 7.9, 2.95)
     if photo:
@@ -306,7 +384,7 @@ def answer_slide(round_label, q_no, answer, icon=None, icons=None, fact=None,
             photo_frame(s, names[1], 8.75, 4.02, 3.88, 2.33)
         if credit:
             text(s, Inches(8.75), Inches(credit_y), Inches(3.88),
-                 Inches(0.3), credit, size=8.5, color=MUTED,
+                 Inches(0.3), credit, size=8.5, color=FOG,
                  align=PP_ALIGN.RIGHT)
     elif icons:
         d, gap = 1.28, 0.22
@@ -322,15 +400,15 @@ def answer_slide(round_label, q_no, answer, icon=None, icons=None, fact=None,
 
 
 def closing_slide():
-    s = add_slide(dark=True,
-                  notes="Count the points and announce the winning team.")
-    icon_row(s, ["trophy"], 2.3, d=1.9)
-    text(s, Inches(1.5), Inches(3.7), Inches(10.33), Inches(1.0),
-         "THANK YOU FOR PLAYING", size=48, bold=True, color=PAPER,
-         align=PP_ALIGN.CENTER)
-    text(s, Inches(1.5), Inches(4.8), Inches(10.33), Inches(0.5),
-         "Time to count the points", size=19, color=AMBER,
-         align=PP_ALIGN.CENTER)
+    s = add_slide(notes="Count the points and announce the winning team.")
+    icon_row(s, ["trophy"], 1.75, d=1.7)
+    text(s, Inches(0.7), Inches(2.9), Inches(11.93), Inches(2.2),
+         ["THANK YOU", "FOR PLAYING"], size=60, color=PAPER,
+         align=PP_ALIGN.CENTER, font=DISPLAY, spacing=1.02)
+    text(s, Inches(1.5), Inches(5.35), Inches(10.33), Inches(0.5),
+         "Time to count the points", size=19, bold=True,
+         color=THEMES["R2"]["bright"], align=PP_ALIGN.CENTER)
+    tricolour_bars(s, 6.25)
 
 
 # ------------------------------------------------------------------ deck ---
@@ -339,9 +417,9 @@ rules_slide()
 
 # ===== ROUND 1 ==============================================================
 R1 = "ROUND 1 · EUROPE & FUN FACTS"
-divider("ROUND 1", "Europe & Fun Facts",
+divider("R1", "ROUND 1", "Europe & Fun Facts",
         "Multiple choice · 6 questions · 1 point each",
-        ["globe", "euro_note", "jeans"])
+        ["globe", "euro_note", "jeans"], num="1")
 
 question_slide(
     R1, 1, 6, "Which European island changes sovereignty every six months?",
@@ -430,8 +508,8 @@ answer_slide(
 
 # ===== ROUND 2 ==============================================================
 R2 = "ROUND 2 · LITHUANIA"
-divider("ROUND 2", "Lithuania", "8 questions · 1 point each",
-        ["microphone", "mountain", "soup"])
+divider("R2", "ROUND 2", "Lithuania", "8 questions · 1 point each",
+        ["microphone", "mountain", "soup"], num="2", size=76)
 
 question_slide(
     R2, 1, 8, "Every year Lithuania plans to win Eurovision — although "
@@ -562,8 +640,9 @@ answer_slide(
 
 # ===== ROUND 3 ==============================================================
 R3 = "ROUND 3 · ENVIRONMENT & NATURE"
-divider("ROUND 3", "Environment & Nature", "4 questions · 1 point each",
-        ["headphones", "fern", "beaver"])
+divider("R3", "ROUND 3", "Environment & Nature",
+        "4 questions · 1 point each",
+        ["headphones", "fern", "beaver"], num="3", size=50)
 
 question_slide(
     R3, 1, 4, "In 2013 Metallica became the first band to perform on all "
@@ -619,9 +698,9 @@ answer_slide(
 
 # ===== BONUS ROUND ==========================================================
 RB = "BONUS · THE BRUSSELS BUBBLE"
-divider("BONUS ROUND", "The Brussels Bubble",
+divider("RB", "BONUS ROUND", "The Brussels Bubble",
         "Insider questions · for those who were in the room",
-        ["recycle", "speech", "ship"],
+        ["recycle", "speech", "ship"], num="B", size=50,
         notes="Possible extra questions: the CBAM question about nails "
               "(still needs wording — a funny one); The Schumann Show about "
               "the institutions: https://www.youtube.com/watch?v=D0fBh-0Eiy0")
