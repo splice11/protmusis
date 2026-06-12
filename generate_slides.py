@@ -4,12 +4,15 @@ Lithuania to the EU) from the questions drafted in `Klausimai protmūšiui.docx`
 
 Format: one slide per question, followed by one slide with the answer.
 Illustrations are OpenMoji (CC BY-SA 4.0) rendered to `assets/` by
-`fetch_assets.py`. Production notes and source links live in speaker notes.
+`fetch_assets.py`; answer-slide photos live in `photos/` (see
+photos/CREDITS.md). Production notes and source links live in speaker notes.
 
-Usage:  pip install python-pptx && python3 generate_slides.py
+Usage:  pip install python-pptx Pillow && python3 generate_slides.py
 Output: Quiz_Night_2026-06-16.pptx
 """
 
+from PIL import Image
+from lxml import etree
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
@@ -26,6 +29,7 @@ AMBER = RGBColor(0xE8, 0xA3, 0x3D)      # accent (shapes, dark-slide text)
 AMBER_DEEP = RGBColor(0xA8, 0x6A, 0x14) # accent text on white
 MUTED = RGBColor(0x6E, 0x75, 0x82)      # secondary text on white
 FOG = RGBColor(0x9B, 0xA3, 0xB2)        # secondary text on dark
+FRAME = RGBColor(0xE3, 0xDE, 0xD3)      # photo frame outline
 
 SLIDE_W = Inches(13.333)
 SLIDE_H = Inches(7.5)
@@ -104,6 +108,35 @@ def icon_circle(slide, name, cx, cy, d):
     pic = Emu(int(d * 0.72))
     slide.shapes.add_picture(f"assets/{name}.png", cx - pic / 2, cy - pic / 2,
                              pic, pic)
+
+
+def photo_frame(slide, name, x, y, w, h):
+    """Photo from photos/, cropped to fill the box, with rounded corners."""
+    path = f"photos/{name}"
+    pic = slide.shapes.add_picture(path, Inches(x), Inches(y), Inches(w),
+                                   Inches(h))
+    src_w, src_h = Image.open(path).size
+    target, source = w / h, src_w / src_h
+    if source > target:
+        f = 1 - target / source
+        pic.crop_left = pic.crop_right = f / 2
+    elif source < target:
+        f = 1 - source / target
+        pic.crop_top = pic.crop_bottom = f / 2
+    spPr = pic._element.spPr
+    ns = "http://schemas.openxmlformats.org/drawingml/2006/main"
+    for geom in spPr.findall(f"{{{ns}}}prstGeom"):
+        spPr.remove(geom)
+    geom = etree.SubElement(spPr, f"{{{ns}}}prstGeom")
+    geom.set("prst", "roundRect")
+    av = etree.SubElement(geom, f"{{{ns}}}avLst")
+    gd = etree.SubElement(av, f"{{{ns}}}gd")
+    gd.set("name", "adj")
+    gd.set("fmla", "val 6000")
+    pic.line.color.rgb = FRAME
+    pic.line.width = Pt(1)
+    pic.shadow.inherit = False
+    return pic
 
 
 def icon_row(slide, names, cy, d=1.5, gap=0.55):
@@ -251,14 +284,31 @@ def question_slide(round_label, q_no, q_total, question, icon, options=None,
 
 
 def answer_slide(round_label, q_no, answer, icon=None, icons=None, fact=None,
-                 video=None, notes=None, a_size=38):
+                 video=None, notes=None, a_size=38, photo=None, credit=None,
+                 photo_h=None):
     s = add_slide(notes=notes)
     kicker(s, round_label, f"ANSWER · QUESTION {q_no}")
-    text(s, Inches(0.7), Inches(1.45), Inches(8.4), Inches(1.7), answer,
+    text_w = 7.6 if photo else 8.4
+    text(s, Inches(0.7), Inches(1.45), Inches(text_w), Inches(1.7), answer,
          size=a_size, bold=True, color=AMBER_DEEP, spacing=1.05)
     if fact:
-        fact_panel(s, fact, 0.7, 3.65, 7.9, 2.95)
-    if icons:
+        fact_panel(s, fact, 0.7, 3.65, 7.6 if photo else 7.9, 2.95)
+    if photo:
+        names = photo if isinstance(photo, list) else [photo]
+        credit_y = 6.44
+        if len(names) == 1:
+            h = photo_h or 4.9
+            y = 1.45 + (4.9 - h) / 2
+            photo_frame(s, names[0], 8.75, y, 3.88, h)
+            credit_y = y + h + 0.08
+        else:
+            photo_frame(s, names[0], 8.75, 1.45, 3.88, 2.33)
+            photo_frame(s, names[1], 8.75, 4.02, 3.88, 2.33)
+        if credit:
+            text(s, Inches(8.75), Inches(credit_y), Inches(3.88),
+                 Inches(0.3), credit, size=8.5, color=MUTED,
+                 align=PP_ALIGN.RIGHT)
+    elif icons:
         d, gap = 1.28, 0.22
         cy = 3.55
         cx = 10.85 - (len(icons) - 1) * (d + gap) / 2
@@ -299,7 +349,8 @@ question_slide(
     options=[("A", "Heligoland"), ("B", "Pheasant Island"), ("C", "Jersey"),
              ("D", "Bornholm")])
 answer_slide(
-    R1, 1, "B — Pheasant Island", icon="island",
+    R1, 1, "B — Pheasant Island",
+    photo="pheasant_island.jpg", credit="Photo: Wikimedia Commons",
     fact="Under the 1659 Treaty of the Pyrenees, France and Spain share "
          "this tiny uninhabited island in the Bidasoa river. Administration "
          "alternates between the two countries every six months — the "
@@ -311,7 +362,9 @@ question_slide(
     options=[("A", "Euro coins"), ("B", "European flag"),
              ("C", "European anthem"), ("D", "Schengen passport")])
 answer_slide(
-    R1, 2, "B — The European flag", icon="flag_eu",
+    R1, 2, "B — The European flag",
+    photo="berlaymont_flag_1986.jpg",
+    credit="Photo: © European Communities, 1986",
     fact="In May 1986 the European flag was raised for the first time "
          "outside the Berlaymont building — twelve gold stars in a circle, "
          "a symbol of unity, unchanged ever since.")
@@ -323,7 +376,8 @@ question_slide(
     options=[("A", "Sakharov Prize"), ("B", "Nobel Peace Prize"),
              ("C", "Charlemagne Prize"), ("D", "Right Livelihood Award")])
 answer_slide(
-    R1, 3, "B — The Nobel Peace Prize", icon="dove",
+    R1, 3, "B — The Nobel Peace Prize",
+    photo="nobel_peace_prize_2012.jpg", photo_h=2.2, credit="Photo: Reuters",
     fact="Awarded to the EU in 2012 for over six decades of advancing "
          "peace, reconciliation, democracy and human rights in Europe.")
 
@@ -334,7 +388,7 @@ question_slide(
     notes="Source: https://www.theguardian.com/business/2016/may/04/"
           "500-euro-banknote-could-be-scrapped-crime")
 answer_slide(
-    R1, 4, "D — The €500 note", icon="detective",
+    R1, 4, "D — The €500 note", photo="euro_500_note.jpg", photo_h=2.6,
     fact="The ECB stopped issuing the €500 note in 2019 over its popularity "
          "with money launderers — and because, like its namesake, everyone "
          "knew what it looked like but almost no one had ever seen one.")
@@ -369,7 +423,7 @@ question_slide(
     options=[("A", "A zipper"), ("B", "Metal rivets"),
              ("C", "Waterproof fabric"), ("D", "Belt loops")])
 answer_slide(
-    R1, 6, "B — Metal rivets", icon="rivet",
+    R1, 6, "B — Metal rivets", photo="jeans_rivets.jpg",
     fact="Jacob Davis, a tailor born in Riga in 1831, reinforced the stress "
          "points of work trousers with copper rivets. He and Levi Strauss "
          "patented the idea in 1873 — and blue jeans were born.")
@@ -391,7 +445,9 @@ question_slide(
           "which part of the clip to show. Option: move this question to a "
           "music/visual round.")
 answer_slide(
-    R2, 1, "“We Are The Winners”", icon="trophy",
+    R2, 1, "“We Are The Winners”",
+    photo=["lt_united_eurovision_2006.jpg", "lena_valaitis_1981.jpg"],
+    credit="Photos: EBU / eurovision.tv",
     fact="Honourable mention: Lithuanian-German singer Lena Valaitis took "
          "second place at Eurovision 1981 — proof that we keep looking for "
          "that victory by all possible means.",
@@ -405,7 +461,9 @@ question_slide(
     notes="Tell the full story and the exact years out loud; keep the slide "
           "short.")
 answer_slide(
-    R2, 2, "Amber", icon="mountain",
+    R2, 2, "Amber",
+    photo=["vitkauskas_everest_1995.jpg", "baltic_amber.jpg"],
+    credit="Top photo: V. Vitkauskas archive",
     fact="Vladas Vitkauskas (1995) and Saulius Vilius (2003) both carried "
          "Baltic amber to the top of the world and scattered it from the "
          "summit.")
@@ -419,7 +477,7 @@ question_slide(
     "butter", q_size=22,
     hint="Think of a recent Council Presidency.")
 answer_slide(
-    R2, 3, "Denmark", icon="flag_dk",
+    R2, 3, "Denmark", photo="interwar_lithuania_1930s.jpg",
     fact="A statistic still celebrated in Lithuanian classrooms. Denmark, "
          "for its part, no longer wants to be the EU's bacon factory — as "
          "Politico once put it.",
@@ -432,7 +490,8 @@ question_slide(
               "night.\n\nWhich flower?",
     "bonfire")
 answer_slide(
-    R2, 4, "The fern flower", icon="fern",
+    R2, 4, "The fern flower",
+    photo="fern_fiddleheads.jpg", credit="Photo: Wikimedia Commons",
     fact="According to tradition, the fern blooms only on Midsummer night — "
          "whoever finds it gains happiness and wisdom. Botanists remain "
          "unconvinced.")
@@ -448,7 +507,9 @@ question_slide(
           "https://manoteises.lt/straipsnis/isleidziamas-pasto-zenklas-"
           "moteru-balsavimo-simtmeciui-lietuvoje-pamineti/")
 answer_slide(
-    R2, 5, "Voting rights", icon="ballot",
+    R2, 5, "Voting rights",
+    photo="suffrage_stamp_2018.jpg",
+    credit="Stamp: Lietuvos paštas, 2018 · design J. Dadonas",
     fact="Lithuanian women gained the vote on 2 November 1918, when the "
          "provisional constitution enshrined equal suffrage — ahead of "
          "much of Western Europe. A commemorative stamp marked the "
@@ -461,7 +522,9 @@ question_slide(
               "threw them overboard.\n\nWhat were the souvenirs?",
     "wave", q_size=24)
 answer_slide(
-    R2, 6, "Egyptian mummies", icon="amphora",
+    R2, 6, "Egyptian mummies",
+    photo="radvila_the_orphan.jpg",
+    credit="Anonymous portrait, c. 1590 (public domain)",
     fact="Mikalojus Kristupas Radvila the Orphan brought two mummies back "
          "from his pilgrimage. When storms battered the ship, the crew "
          "blamed the cargo — and overboard they went. His travel diary "
@@ -480,7 +543,8 @@ question_slide(
           "subtitles to the clip. Consider whether to keep “early 2000s” in "
           "the wording.")
 answer_slide(
-    R2, 7, "Joining the European Union", a_size=34, icon="flag_eu",
+    R2, 7, "Joining the European Union", a_size=34,
+    photo="eu_enlargement_2004_map.png", credit="Map: Wikimedia Commons",
     fact="Lithuania joined the EU on 1 May 2004, in the largest enlargement "
          "in the Union's history — ten countries at once. The cepelinai "
          "street-food revolution is still pending.")
@@ -492,7 +556,7 @@ question_slide(
     options=[("A", "Cepelinai"), ("B", "Šakotis"), ("C", "Šaltibarščiai"),
              ("D", "Kibinai")])
 answer_slide(
-    R2, 8, "C — Šaltibarščiai", icon="soup",
+    R2, 8, "C — Šaltibarščiai", photo="saltibarsciai.jpg",
     fact="The electric-pink cold beet soup is Lithuania's unofficial "
          "summer flag — best served with hot potatoes and a sunny terrace.")
 
@@ -507,7 +571,9 @@ question_slide(
               "audience used 120 of what?",
     "guitar")
 answer_slide(
-    R3, 1, "Headphones", icon="headphones",
+    R3, 1, "Headphones",
+    photo="metallica_freeze_em_all.jpg",
+    credit="Artwork: © Blackened Recordings",
     fact="To comply with Antarctic environmental rules, the band played "
          "without amplifiers — the audience of about 120 listened through "
          "headphones. The concert was fittingly called “Freeze 'Em All”.")
@@ -521,7 +587,8 @@ question_slide(
     notes="Photo idea: https://www.themarysue.com/the-trimates-three-women-"
           "that-made-science-history/")
 answer_slide(
-    R3, 2, "Great apes", icons=["monkey", "gorilla", "orangutan"],
+    R3, 2, "Great apes",
+    photo="trimates_goodall_fossey_galdikas.jpg",
     fact="Goodall (chimpanzees), Fossey (gorillas) and Galdikas "
          "(orangutans) were recruited by Louis Leakey — hence also "
          "“Leakey's Angels”. Galdikas, of Lithuanian descent, still works "
@@ -533,7 +600,8 @@ question_slide(
               "training area near the Lithuanian–Belarusian border?",
     "newspaper")
 answer_slide(
-    R3, 3, "The Nature Restoration Law", a_size=34, icon="scales",
+    R3, 3, "The Nature Restoration Law", a_size=34,
+    photo="cepkeliai_marsh.jpg", credit="Photo: Wikimedia Commons",
     fact="Commentary on the 2025 tragedy near Pabradė linked the swampy "
          "terrain to wetlands restored under EU environmental policy — "
          "putting the Nature Restoration Law unexpectedly in the news.")
@@ -544,7 +612,7 @@ question_slide(
               "species.\n\nWhat animal is it?",
     "tools")
 answer_slide(
-    R3, 4, "The beaver", icon="beaver",
+    R3, 4, "The beaver", photo="beaver_at_dam.jpg",
     fact="Beaver dams create wetlands that store water, filter pollution "
          "and host countless species. Lithuania's beaver population has "
          "grown from near extinction to one of the densest in Europe.")
@@ -579,7 +647,11 @@ question_slide(
           "the earlier one).")
 answer_slide(
     RB, 2, "“Scrutiny reservation” — on the Nature Restoration Law",
-    a_size=30, icon="hand")
+    a_size=30, photo="europa_building_room.jpg",
+    fact="A scrutiny reservation lets a member state hold its position "
+         "while procedures are completed back home — a small phrase that "
+         "can pause a finely balanced vote. Pictured: the Europa building, "
+         "where Coreper meets.")
 
 question_slide(
     RB, 3, 3, "1985: Lithuanian, Latvian and Estonian dissidents organised "
@@ -593,7 +665,9 @@ question_slide(
           "cruise's spiritus movens; the Baltic Tribunal also took place in "
           "1985. Keep names off the slide. Ship photo to be added later.")
 answer_slide(
-    RB, 3, "A rumour that a bomb was on board", a_size=32, icon="newspaper",
+    RB, 3, "A rumour that a bomb was on board", a_size=32,
+    photo="baltic_star_birger_jarl.jpg", photo_h=2.6,
+    credit="Photo: Wikimedia Commons",
     fact="The rumour failed: the cruise went ahead, and the Helsinki "
          "demonstration was reported across the Scandinavian and wider "
          "European press — a loud reminder that the Baltic states had not "
