@@ -66,4 +66,5 @@ Uploaded for the questions added in the latest draft. Converted to JPEG
 | `artemis2_sls_launchpad.jpg` | Artemis II SLS rocket and Orion stack on the launch pad | R1 A8 | NASA (NASA imagery is generally public domain) — **to confirm exact credit** |
 | `finland_forest.jpg` | Snow-covered Finnish forest from the air | R3 A5 | Photo: Jari Salonen (filename credit) — **to confirm** |
 | `danube_budapest.jpg` | The Danube through Budapest, Chain Bridge and Parliament | R3 A6 | Stock/tourism photo of Budapest on the Danube, source untraced — **to confirm** |
+| `what_is_a_river.jpg` | Generic river image used on the Danube question slide | R3 Q6 | User-provided image; generated artifact also embeds a renamed copy as `generic_river.jpg` |
 | `napoleon_in_his_study.jpg` | *The Emperor Napoleon in His Study at the Tuileries* | Tie-breaker A | Jacques-Louis David, 1812 — public domain (Google Art Project, via Wikimedia Commons) |

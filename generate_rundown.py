@@ -353,9 +353,8 @@ question(
 
 # ----------------------------------------------------------------- round 4 --
 doc.add_heading("Round 4 — Music (Name the Connection)", level=1)
-para("5 riddles · 1 point each · a song excerpt plays automatically and "
-     "loops on each slide as the clue (embedded in the deck)", italic=True,
-     color=MUTED)
+para("5 riddles · 1 point each · click the embedded song excerpt on each "
+     "slide to hear the clue", italic=True, color=MUTED)
 para("Hidden theme of the round: every answer is tied to the sea — a nod "
      "to the EU's upcoming Ocean Pact (and to Čiurlionis's “Jūra”). Reveal "
      "the link at the end for an optional extra point.", italic=True,
@@ -500,12 +499,12 @@ for line in [
     "Round 2's pink question reworked from a multiple-choice “which dish” "
     "into the open “Vilnius Pink Soup Fest” question (answer: pink).",
     "Round 4 reframed from “name this song” into five riddles whose "
-    "answers all relate to the sea; the matching song excerpt plays "
-    "automatically and loops on each slide as the clue.",
+    "answers all relate to the sea; each slide has a matching embedded "
+    "song excerpt to play as the clue.",
     "A one-question tie-breaker added (Napoleon and St Anne's Church) for "
     "use only if teams finish level.",
     "Audio and video embedded to play inline in PowerPoint (no YouTube "
-    "links): the five music-round excerpts (auto-play + loop), plus LT "
+    "links): the five music-round excerpts, plus LT "
     "United “We Are The Winners” (excerpt to be chosen), the EU-accession "
     "promo (English subtitles still needed) and the Umaru Dikko story on "
     "its answer slide. Original YouTube URLs kept in the speaker notes as "

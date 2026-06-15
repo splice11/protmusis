@@ -26,7 +26,6 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
-from pptx.oxml import parse_xml
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
 
@@ -301,63 +300,13 @@ def _set_fullscreen(slide, shape_id):
             vid.set("fullScrn", "1")
 
 
-def _set_autoplay_loop(slide, shape_id):
-    """Replace the slide's media timing so the embedded clip starts
-    automatically when the slide opens and loops until the slide is left.
-    PowerPoint's default (added by add_movie) is play-on-click; this swaps
-    in the “Start: Automatically” + “Loop until Stopped” timing tree."""
-    xml = (
-        '<p:timing xmlns:p="http://schemas.openxmlformats.org/'
-        'presentationml/2006/main">'
-        '<p:tnLst><p:par>'
-        '<p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot">'
-        '<p:childTnLst>'
-        '<p:seq concurrent="1" nextAc="seek">'
-        '<p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst>'
-        '<p:par><p:cTn id="3" fill="hold">'
-        '<p:stCondLst><p:cond delay="indefinite"/></p:stCondLst>'
-        '<p:childTnLst>'
-        '<p:par><p:cTn id="4" fill="hold">'
-        '<p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>'
-        '<p:par><p:cTn id="5" presetClass="mediaCall" presetID="1" '
-        'fill="hold" nodeType="afterEffect">'
-        '<p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>'
-        '<p:cmd type="call" cmd="playFrom(0.0)"><p:cBhvr>'
-        '<p:cTn id="6" dur="indefinite" fill="hold"/>'
-        f'<p:tgtEl><p:spTgt spid="{shape_id}"/></p:tgtEl>'
-        '</p:cBhvr></p:cmd>'
-        '</p:childTnLst></p:cTn></p:par>'
-        '</p:childTnLst></p:cTn></p:par>'
-        '</p:childTnLst></p:cTn></p:par>'
-        '</p:childTnLst></p:cTn>'
-        '<p:prevCondLst><p:cond evt="onPrev" delay="0">'
-        '<p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:prevCondLst>'
-        '<p:nextCondLst><p:cond evt="onNext" delay="0">'
-        '<p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:nextCondLst>'
-        '</p:seq>'
-        '<p:video><p:cMediaNode vol="80000" repeat="indefinite">'
-        '<p:cTn id="7" repeatCount="indefinite" fill="hold" display="0">'
-        '<p:stCondLst><p:cond delay="indefinite"/></p:stCondLst>'
-        '<p:endCondLst><p:cond evt="onStopAudio" delay="0">'
-        '<p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:endCondLst>'
-        f'</p:cTn><p:tgtEl><p:spTgt spid="{shape_id}"/></p:tgtEl>'
-        '</p:cMediaNode></p:video>'
-        '</p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>')
-    old = slide.element.find(qn("p:timing"))
-    new = parse_xml(xml)
-    if old is not None:
-        old.getparent().replace(old, new)
-    else:
-        slide.element.append(new)
-
-
 def media_box(slide, media_path, poster_path, mime, x, y, w, h,
-              fullscreen=False, autoplay_loop=False):
+              fullscreen=False):
     """Inline media player (audio or video) framed in the round accent.
     `fullscreen` ticks Play Full Screen so a video fills the screen on
-    click (use for video, not the music excerpts). `autoplay_loop` starts
-    the clip automatically on slide open and loops it (used for the music
-    round, so the excerpt plays as a clue without anyone pressing play)."""
+    click (use for video, not the music excerpts). Music excerpts remain
+    click-to-play, matching PowerPoint defaults and avoiding custom timing
+    XML that can trigger repair prompts."""
     pad = 0.06
     shape(slide, MSO_SHAPE.RECTANGLE, Inches(x - pad), Inches(y - pad),
           Inches(w + 2 * pad), Inches(h + 2 * pad), fill=CURRENT["bright"])
@@ -366,8 +315,6 @@ def media_box(slide, media_path, poster_path, mime, x, y, w, h,
                                 mime_type=mime)
     if fullscreen:
         _set_fullscreen(slide, gf.shape_id)
-    if autoplay_loop:
-        _set_autoplay_loop(slide, gf.shape_id)
     return gf
 
 
@@ -600,22 +547,21 @@ def answer_slide(round_label, q_no, answer, icon=None, fact=None,
 def music_question_slide(round_label, q_no, q_total, question, audio,
                          notes=None, q_size=24):
     """A music-round riddle: the question is shown prominently on the left
-    while a small song excerpt plays automatically and loops in the corner
-    as the clue. The riddle answer is revealed on the next slide."""
+    while a small song excerpt is available in the corner as the clue.
+    The riddle answer is revealed on the next slide."""
     s = add_slide(notes=notes)
     edge_bar(s)
     kicker(s, round_label, f"QUESTION {q_no} OF {q_total} · 1 POINT")
-    # small auto-playing, looping clip tucked to the right as the clue
+    # small playable clip tucked to the right as the clue
     vw = 3.3
     vh = vw * 9 / 16
     vx = RIGHT - vw
     vy = 2.45
     poster = make_poster(f"track{q_no}", CURRENT["bright"], f"TRACK {q_no}",
-                         sub="NOW PLAYING", size=(640, 360))
-    media_box(s, audio, poster, "audio/mpeg", vx, vy, vw, vh,
-              autoplay_loop=True)
+                         size=(640, 360))
+    media_box(s, audio, poster, "audio/mpeg", vx, vy, vw, vh)
     text(s, Inches(vx), Inches(vy + vh + 0.14), Inches(vw), Inches(0.4),
-         [[("♪  Plays automatically — listen for the clue",
+         [[("♪  Listen for the clue",
             {"italic": True})]], size=10.5, color=FOG, align=PP_ALIGN.CENTER)
     qw = vx - 0.7 - 0.45
     text(s, Inches(0.7), Inches(1.55), Inches(qw), Inches(4.7),
@@ -986,7 +932,7 @@ question_slide(
     R3, 6, 6, "We talk a lot about water resilience.\n\nWhich river flows "
               "through — or forms the border of — the greatest number of "
               "countries in Europe?",
-    "wave", q_size=24)
+    photo="../what_is_a_river.jpg", q_size=24)
 answer_slide(
     R3, 6, "The Danube", photo="danube_budapest.jpg",
     credit="Photo: the Danube in Budapest",
@@ -1000,7 +946,7 @@ divider("RM", "ROUND 4", "Name the Connection",
         "5 riddles · 1 point each · listen for the clue",
         ["microphone", "guitar", "headphones"], num="4", size=52,
         notes="Each slide poses a riddle while a song excerpt plays "
-              "automatically and loops in the corner as the clue. Teams "
+              "from the embedded player in the corner as the clue. Teams "
               "write the answer to the riddle — every answer is tied to the "
               "sea, a nod to the EU's upcoming Ocean Pact (and to "
               "Čiurlionis's “Jūra”). Reveal the link at the end for a bonus.")
