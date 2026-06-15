@@ -5,19 +5,23 @@ Lithuania to the EU) from the questions drafted in `Klausimai protmūšiui.docx`
 Format: one slide per question, followed by one slide with the answer.
 Question illustrations are real photos from `photos/` where available
 (see photos/CREDITS.md), with OpenMoji icons (CC BY-SA 4.0, rendered to
-`assets/` by `fetch_assets.py`) as fallback. The Montserrat typefaces in
-`fonts/` (SIL OFL 1.1) are embedded into the .pptx so the deck renders
-identically on machines without the fonts installed.
+`assets/` by `fetch_assets.py`) as fallback. The deck is set in Segoe UI
+(and Segoe UI Black for display) — fonts installed by default on Windows,
+so nothing has to be embedded and managed Office installs render it as
+intended.
+
+Song excerpts (media/audio/) and video clips (media/video/) are embedded
+to play inline in PowerPoint, each behind an on-brand poster frame
+generated with Pillow.
 
 Usage:  pip install python-pptx Pillow && python3 generate_slides.py
 Output: Trivia_Night_2026-06-16.pptx
 """
 
 import os
-import zipfile
+import tempfile
 
-from PIL import Image
-from lxml import etree
+from PIL import Image, ImageDraw, ImageFont
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
@@ -51,14 +55,17 @@ THEMES = {
            "bright": RGBColor(0x46, 0xD2, 0x90), "on": PAPER},
     "RB": {"slab": RGBColor(0xC1, 0x27, 0x2D),
            "bright": RGBColor(0xFF, 0x70, 0x61), "on": PAPER},
+    # Music round — a deep sea teal, since every track is about the sea.
+    "RM": {"slab": RGBColor(0x0C, 0x5A, 0x6B),
+           "bright": RGBColor(0x4F, 0xD0, 0xDF), "on": PAPER},
 }
 TRICOLOUR = [THEMES["R2"]["slab"], THEMES["R3"]["slab"], THEMES["RB"]["slab"]]
 CURRENT = THEMES["R2"]  # active round theme; dividers switch it
 
 SLIDE_W = Inches(13.333)
 SLIDE_H = Inches(7.5)
-FONT = "Montserrat"
-DISPLAY = "Montserrat Black"
+FONT = "Segoe UI"            # installed by default on Windows — no embedding
+DISPLAY = "Segoe UI Black"   # heavy display weight, also a Windows system face
 
 prs = Presentation()
 prs.slide_width = SLIDE_W
@@ -213,36 +220,82 @@ def kicker(slide, left, right=None):
              right, size=13, bold=True, color=FOG, align=PP_ALIGN.RIGHT)
 
 
-def video_pill(slide, label, url, y, max_x=12.63):
-    # a real absolute hyperlink — bare "youtube.com/…" text renders fine
-    # but resolves as a relative (file://) path when clicked in the PDF
-    href = url if url.startswith("http") else "https://www." + url
-    pill = shape(slide, MSO_SHAPE.RECTANGLE, Inches(0.7), Inches(y),
-                 Inches(2.55), Inches(0.46), fill=CURRENT["bright"])
-    pill.click_action.hyperlink.address = href
-    tf = pill.text_frame
-    tf.word_wrap = False
-    p = tf.paragraphs[0]
-    p.alignment = PP_ALIGN.CENTER
-    r = p.add_run()
-    r.text = "▶   " + label
-    r.font.name = FONT
-    r.font.size = Pt(13)
-    r.font.bold = True
-    r.font.color.rgb = BG
-    r.hyperlink.address = href
-    tb = slide.shapes.add_textbox(Inches(3.45), Inches(y + 0.11),
-                                  Inches(max_x - 3.45), Inches(0.3))
-    tf2 = tb.text_frame
-    tf2.word_wrap = True
-    tf2.margin_left = tf2.margin_right = 0
-    tf2.margin_top = tf2.margin_bottom = 0
-    r2 = tf2.paragraphs[0].add_run()
-    r2.text = url
-    r2.font.name = FONT
-    r2.font.size = Pt(12)
-    r2.font.color.rgb = FOG
-    r2.hyperlink.address = href
+# --------------------------------------------------- inline audio / video --
+# Song excerpts and video clips are embedded so they play inside PowerPoint,
+# offline — no YouTube link to open. python-pptx's add_movie() handles both
+# audio and video; each sits behind an on-brand poster frame we render here
+# with Pillow so the slide still looks designed before anyone presses play.
+_POSTER_DIR = tempfile.mkdtemp(prefix="trivia_posters_")
+_POSTER_FONT = "fonts/Montserrat-Black.ttf"  # baked into the PNG, not the deck
+
+
+def _poster_font(size):
+    return ImageFont.truetype(_POSTER_FONT, size)
+
+
+def make_poster(key, accent, label, sub=None, src=None, size=(1280, 720)):
+    """Render a media poster PNG (dark card, accent play button, label) to a
+    temp file and return its path. `src` optional background art (drawn to
+    fit, then dimmed); `accent` an RGBColor; baked at the box aspect so the
+    poster is never stretched."""
+    W, H = size
+    acc = (accent[0], accent[1], accent[2])
+    img = Image.new("RGB", (W, H), (0x0B, 0x0E, 0x15))
+    if src:
+        art = Image.open(src).convert("RGBA")
+        scale = min(W / art.width, H / art.height) * 0.92
+        art = art.resize((max(1, int(art.width * scale)),
+                          max(1, int(art.height * scale))), Image.LANCZOS)
+        img.paste(art, ((W - art.width) // 2, (H - art.height) // 2), art)
+        img = Image.alpha_composite(
+            img.convert("RGBA"),
+            Image.new("RGBA", (W, H), (0x0B, 0x0E, 0x15, 140))).convert("RGB")
+    d = ImageDraw.Draw(img)
+    cx, cy, r = W // 2, int(H * 0.40), 86
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=acc)
+    t = 42
+    d.polygon([(cx - t * 0.5, cy - t), (cx - t * 0.5, cy + t),
+               (cx + t * 0.9, cy)], fill=(0x0B, 0x0E, 0x15))
+    f1 = _poster_font(58)
+    d.text((cx - d.textlength(label, font=f1) / 2, cy + r + 26), label,
+           font=f1, fill=(255, 255, 255))
+    if sub:
+        f2 = _poster_font(32)
+        d.text((cx - d.textlength(sub, font=f2) / 2, cy + r + 104), sub,
+               font=f2, fill=(0x95, 0x9E, 0xAF))
+    bw = 9
+    d.rectangle([bw // 2, bw // 2, W - bw // 2 - 1, H - bw // 2 - 1],
+                outline=acc, width=bw)
+    path = os.path.join(_POSTER_DIR, key + ".png")
+    img.save(path)
+    return path
+
+
+def media_box(slide, media_path, poster_path, mime, x, y, w, h):
+    """Inline media player (audio or video) framed in the round accent."""
+    pad = 0.06
+    shape(slide, MSO_SHAPE.RECTANGLE, Inches(x - pad), Inches(y - pad),
+          Inches(w + 2 * pad), Inches(h + 2 * pad), fill=CURRENT["bright"])
+    slide.shapes.add_movie(media_path, Inches(x), Inches(y), Inches(w),
+                           Inches(h), poster_frame_image=poster_path,
+                           mime_type=mime)
+
+
+def place_movie_right(slide, movie, y=1.75):
+    """Embed a 16:9 video clip on the right of a content slide. Returns the
+    video's left edge x (inches) so question/answer text can size to it."""
+    vw = 5.95
+    vh = vw * 9 / 16
+    vx = 12.86 - vw
+    poster = make_poster(movie["key"], CURRENT["bright"],
+                         movie.get("label", "PLAY THE CLIP"),
+                         sub=movie.get("sub"), src=movie.get("poster_src"))
+    media_box(slide, movie["file"], poster, movie.get("mime", "video/mp4"),
+              vx, y, vw, vh)
+    cap = "▶  Embedded clip — click to play in PowerPoint"
+    text(slide, Inches(vx), Inches(y + vh + 0.12), Inches(vw), Inches(0.3),
+         movie.get("caption", cap), size=10, color=FOG, align=PP_ALIGN.RIGHT)
+    return vx
 
 
 def fact_panel(slide, fact, x, y, w, h):
@@ -331,7 +384,7 @@ def divider(theme, round_no, title, sub, icons, num, notes=None, size=54):
 
 
 def question_slide(round_label, q_no, q_total, question, icon=None,
-                   options=None, hint=None, video=None, notes=None,
+                   options=None, hint=None, movie=None, notes=None,
                    points="1 point", q_size=26, photo=None, photo_h=None,
                    photo_border=True):
     s = add_slide(notes=notes)
@@ -366,7 +419,10 @@ def question_slide(round_label, q_no, q_total, question, icon=None,
                      Inches(0.95), opt, size=18, bold=True, color=LIGHT,
                      anchor=MSO_ANCHOR.MIDDLE)
     else:
-        if photo:
+        if movie:
+            px = place_movie_right(s, movie, y=2.0)
+            qw = px - 0.7 - 0.4
+        elif photo:
             # borderless art (logos) gets an inset from the slide edge
             x1 = 13.333 if photo_border else 12.93
             px, _, _, _ = place_photo(s, photo, 8.0, 0.0, x1, 7.5,
@@ -378,8 +434,6 @@ def question_slide(round_label, q_no, q_total, question, icon=None,
             qw, px = 7.9, 9.0
         text(s, Inches(0.7), Inches(1.55), Inches(qw), Inches(4.4),
              question, size=q_size, bold=True, color=PAPER, spacing=1.15)
-        if video:
-            video_pill(s, "Play the clip", video, 5.95, max_x=px - 0.2)
     if hint:
         text(s, Inches(0.7), Inches(6.45), Inches(11.9), Inches(0.4),
              [[("HINT   ", {"bold": True, "color": bright, "size": 14}),
@@ -387,13 +441,15 @@ def question_slide(round_label, q_no, q_total, question, icon=None,
 
 
 def answer_slide(round_label, q_no, answer, icon=None, fact=None,
-                 video=None, notes=None, a_size=38, photo=None, credit=None,
+                 movie=None, notes=None, a_size=38, photo=None, credit=None,
                  photo_h=None, photo_border=True):
     s = add_slide(notes=notes)
     edge_bar(s)
     kicker(s, round_label, f"ANSWER · QUESTION {q_no}")
     px = 12.63
-    if photo:
+    if movie:
+        px = place_movie_right(s, movie, y=1.7)
+    elif photo:
         names = photo if isinstance(photo, list) else [photo]
         if len(names) == 1:
             bot = 7.02 if credit else 7.5
@@ -419,8 +475,33 @@ def answer_slide(round_label, q_no, answer, icon=None, fact=None,
          size=a_size, bold=True, color=CURRENT["bright"], spacing=1.05)
     if fact:
         fact_panel(s, fact, 0.7, 3.65, text_w, 2.95)
-    if video:
-        video_pill(s, "Watch the story", video, 2.85, max_x=px - 0.2)
+
+
+def music_question_slide(round_label, q_no, q_total, audio, hint=None,
+                         notes=None):
+    """“Name this song”: an embedded excerpt that plays inline, centred
+    behind a TRACK n poster. The answer is revealed on the next slide."""
+    s = add_slide(notes=notes)
+    edge_bar(s)
+    kicker(s, round_label, f"QUESTION {q_no} OF {q_total} · 1 POINT")
+    text(s, Inches(0.7), Inches(1.4), Inches(11.93), Inches(0.9),
+         "NAME THIS SONG", size=46, color=PAPER, font=DISPLAY,
+         align=PP_ALIGN.CENTER)
+    text(s, Inches(0.7), Inches(2.4), Inches(11.93), Inches(0.4),
+         [[("Bonus point if you can name the artist",
+            {"italic": True})]], size=16, color=FOG, align=PP_ALIGN.CENTER)
+    poster = make_poster(f"track{q_no}", CURRENT["bright"], f"TRACK {q_no}",
+                         sub="PRESS PLAY")
+    vw = 6.4
+    vh = vw * 9 / 16
+    media_box(s, audio, poster, "audio/mpeg", (13.333 - vw) / 2, 2.95,
+              vw, vh)
+    if hint:
+        text(s, Inches(0.7), Inches(6.6), Inches(11.93), Inches(0.4),
+             [[("HINT   ", {"bold": True, "color": CURRENT["bright"],
+                            "size": 14}),
+               (hint, {"size": 14, "color": FOG, "italic": True})]],
+             align=PP_ALIGN.CENTER)
 
 
 def closing_slide():
@@ -512,13 +593,15 @@ question_slide(
     notes="Background video: https://www.youtube.com/watch?v=N83Idy9IOmU")
 answer_slide(
     R1, 5, "A — The crate was improperly labelled", a_size=32,
-    photo="dikko_crate_stansted_1984.jpg",
-    credit="Press photo, Stansted 1984 — likely PA Images",
+    movie={"key": "dikko", "file": "media/video/umaru_dikko_kidnap.mp4",
+           "poster_src": "photos/dikko_crate_stansted_1984.jpg",
+           "label": "PLAY THE STORY"},
     fact="With no official diplomatic markings, customs officers at "
          "Stansted were entitled to open the crate — and found Dikko "
          "unconscious, accompanied by an anaesthetist.",
-    video="youtube.com/watch?v=N83Idy9IOmU",
-    notes="Video: https://www.youtube.com/watch?v=N83Idy9IOmU")
+    notes="Embedded clip plays in PowerPoint (media/video/"
+          "umaru_dikko_kidnap.mp4). Backup: "
+          "https://www.youtube.com/watch?v=N83Idy9IOmU")
 
 question_slide(
     R1, 6, 6, "One of the inventors of modern blue jeans was born in "
@@ -546,12 +629,15 @@ question_slide(
               "tried a different strategy: entering a song that simply "
               "declared victory before the contest was even over.\n\nWhat "
               "was the title of the song?",
-    photo="eurovision_logo_white.png", photo_h=1.35, photo_border=False,
     q_size=22,
-    video="youtube.com/watch?v=DBAdOlQPbwg",
-    notes="Video: https://www.youtube.com/watch?v=DBAdOlQPbwg — decide "
-          "which part of the clip to show. Option: move this question to a "
-          "music/visual round.")
+    movie={"key": "eurovision", "file": "media/video/"
+           "eurovision_we_are_the_winners.mp4",
+           "poster_src": "photos/eurovision_logo_white.png",
+           "label": "PLAY THE CLIP"},
+    notes="Embedded clip plays in PowerPoint (media/video/"
+          "eurovision_we_are_the_winners.mp4). Decide which part to show — "
+          "trim in PowerPoint (Playback ▸ Trim Video). Backup: "
+          "https://www.youtube.com/watch?v=DBAdOlQPbwg")
 answer_slide(
     R2, 1, "“We Are The Winners”",
     photo=["lt_united_eurovision_2006.jpg", "lena_valaitis_1981.jpg"],
@@ -645,11 +731,13 @@ question_slide(
               "Europe as street food.\n\nThe video reflects a moment when "
               "Lithuania was preparing for a major change. What event was "
               "approaching?",
-    photo="cepelinai.jpg", q_size=22,
-    video="youtube.com/watch?v=YgvHcenDYcU",
-    notes="Video: https://www.youtube.com/watch?v=YgvHcenDYcU — add English "
-          "subtitles to the clip. Consider whether to keep “early 2000s” in "
-          "the wording.")
+    q_size=22,
+    movie={"key": "spirgi", "file": "media/video/eu_accession_spirgi.mp4",
+           "poster_src": "photos/cepelinai.jpg", "label": "PLAY THE CLIP"},
+    notes="Embedded clip plays in PowerPoint (media/video/"
+          "eu_accession_spirgi.mp4) — add English subtitles before the "
+          "night. Consider whether to keep “early 2000s” in the wording. "
+          "Backup: https://www.youtube.com/watch?v=YgvHcenDYcU")
 answer_slide(
     R2, 7, "Joining the European Union", a_size=34,
     photo="eu_enlargement_2004_map.png", credit="Map: Wikimedia Commons",
@@ -726,6 +814,65 @@ answer_slide(
          "and host countless species. Lithuania's beaver population has "
          "grown from near extinction to one of the densest in Europe.")
 
+# ===== ROUND 4 — MUSIC ======================================================
+RM = "ROUND 4 · MUSIC"
+divider("RM", "ROUND 4", "Name That Tune",
+        "5 songs · 1 point each · press play",
+        ["microphone", "guitar", "headphones"], num="4", size=64,
+        notes="Each slide plays an embedded excerpt — just click the play "
+              "button. Teams write down the song (bonus point for the "
+              "artist). The twist: every track is about the sea — a nod to "
+              "Čiurlionis's symphonic poem “Jūra”. You can reveal that link "
+              "at the end of the round for an extra point.")
+
+music_question_slide(
+    RM, 1, 5, "media/audio/how_far_ill_go.mp3",
+    hint="From a 2016 Disney film about a Pacific island voyager.")
+answer_slide(
+    RM, 1, "“How Far I'll Go”", a_size=40,
+    photo="song_how_far_ill_go.png", credit="Cover: Walt Disney Records",
+    fact="Sung by Auli'i Cravalho in Disney's “Moana” (2016) — the ocean "
+         "keeps calling her past the reef. Theme of the round: the sea.")
+
+music_question_slide(
+    RM, 2, 5, "media/audio/my_heart_will_go_on.mp3",
+    hint="The love theme from the highest-grossing film of the 1990s.")
+answer_slide(
+    RM, 2, "“My Heart Will Go On”", a_size=38,
+    photo="song_my_heart_will_go_on.png",
+    credit="Single cover: Columbia / Sony",
+    fact="Céline Dion's theme from “Titanic” (1997) — an ocean liner, and "
+         "another track all at sea.")
+
+music_question_slide(
+    RM, 3, 5, "media/audio/jura_happyendless.mp3",
+    hint="A Lithuanian act — and the title is the Lithuanian word for "
+         "“the sea”.")
+answer_slide(
+    RM, 3, "“Jūra” — HappyEndless", a_size=36,
+    photo="song_jura_happyendless.jpg",
+    fact="“Jūra” is Lithuanian for “the sea” — the most direct clue to the "
+         "round's hidden theme.")
+
+music_question_slide(
+    RM, 4, 5, "media/audio/yellow_submarine.mp3",
+    hint="A 1966 sing-along by the most famous band from Liverpool.")
+answer_slide(
+    RM, 4, "“Yellow Submarine”", a_size=40,
+    photo="song_yellow_submarine.jpg",
+    credit="Album art: Apple / EMI",
+    fact="The Beatles, 1966 — “we all live in a yellow submarine”, somewhere "
+         "beneath the sea.")
+
+music_question_slide(
+    RM, 5, 5, "media/audio/ocean_eyes.mp3",
+    hint="The 2015 breakout track, written when the singer was 13.")
+answer_slide(
+    RM, 5, "“Ocean Eyes”", a_size=42,
+    photo="song_ocean_eyes.png", credit="Single cover: Darkroom / Interscope",
+    fact="Billie Eilish's debut, 2015 — and the fifth and final clue: every "
+         "song in this round is about the sea.")
+
 # ===== BONUS ROUND ==========================================================
 RB = "BONUS · THE BRUSSELS BUBBLE"
 divider("RB", "BONUS ROUND", "The Brussels Bubble",
@@ -788,71 +935,7 @@ answer_slide(
 closing_slide()
 
 
-# --------------------------------------------------------- font embedding --
-def embed_fonts(path):
-    """Embed the Montserrat faces (fonts/, SIL OFL 1.1) into the .pptx so
-    the deck renders identically on machines without the fonts installed."""
-    faces = [  # (typeface, slot, ttf) — slot order: regular, bold, italic
-        ("Montserrat", "regular", "fonts/Montserrat-Regular.ttf"),
-        ("Montserrat", "bold", "fonts/Montserrat-Bold.ttf"),
-        ("Montserrat", "italic", "fonts/Montserrat-Italic.ttf"),
-        ("Montserrat Black", "regular", "fonts/Montserrat-Black.ttf"),
-    ]
-    P = "http://schemas.openxmlformats.org/presentationml/2006/main"
-    R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-    CT = "http://schemas.openxmlformats.org/package/2006/content-types"
-    REL = "http://schemas.openxmlformats.org/package/2006/relationships"
-
-    def xml(root):
-        return etree.tostring(root, xml_declaration=True, encoding="UTF-8",
-                              standalone=True)
-
-    tmp = path + ".tmp"
-    with zipfile.ZipFile(path) as zin, \
-            zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
-        for n in zin.namelist():
-            data = zin.read(n)
-            if n == "[Content_Types].xml":
-                root = etree.fromstring(data)
-                d = etree.SubElement(root, f"{{{CT}}}Default")
-                d.set("Extension", "fntdata")
-                d.set("ContentType", "application/x-fontdata")
-                data = xml(root)
-            elif n == "ppt/_rels/presentation.xml.rels":
-                root = etree.fromstring(data)
-                for i in range(len(faces)):
-                    rel = etree.SubElement(root, f"{{{REL}}}Relationship")
-                    rel.set("Id", f"rIdFont{i + 1}")
-                    rel.set("Type", R + "/font")
-                    rel.set("Target", f"fonts/font{i + 1}.fntdata")
-                data = xml(root)
-            elif n == "ppt/presentation.xml":
-                root = etree.fromstring(data)
-                root.set("embedTrueTypeFonts", "1")
-                lst = etree.Element(f"{{{P}}}embeddedFontLst")
-                by_face = {}
-                for i, (face, slot, _) in enumerate(faces):
-                    ef = by_face.get(face)
-                    if ef is None:
-                        ef = etree.SubElement(lst, f"{{{P}}}embeddedFont")
-                        fo = etree.SubElement(ef, f"{{{P}}}font")
-                        fo.set("typeface", face)
-                        fo.set("pitchFamily", "34")
-                        fo.set("charset", "0")
-                        by_face[face] = ef
-                    sl = etree.SubElement(ef, f"{{{P}}}{slot}")
-                    sl.set(f"{{{R}}}id", f"rIdFont{i + 1}")
-                notes_sz = root.find(f"{{{P}}}notesSz")
-                root.insert(list(root).index(notes_sz) + 1, lst)
-                data = xml(root)
-            zout.writestr(n, data)
-        for i, (_, _, ttf) in enumerate(faces):
-            zout.write(ttf, f"ppt/fonts/font{i + 1}.fntdata")
-    os.replace(tmp, path)
-
-
 OUT = "Trivia_Night_2026-06-16.pptx"
 prs.save(OUT)
-embed_fonts(OUT)
 print(f"Saved {OUT} with {len(prs.slides._sldIdLst)} slides "
-      "(Montserrat embedded)")
+      "(Segoe UI · audio & video embedded)")

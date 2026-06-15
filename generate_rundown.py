@@ -89,7 +89,7 @@ para("This document follows the final slide deck "
 doc.add_heading("Opening — how tonight works", level=1)
 para("Team draw at the door: every guest draws a slip with the name of a "
      "Lithuanian river or lake — that is their team.")
-para("Three rounds plus a bonus round. One point per question unless "
+para("Four rounds plus a bonus round. One point per question unless "
      "marked otherwise.")
 para("Teams write their answers down; answers are revealed and scored "
      "after each round.")
@@ -305,6 +305,50 @@ question(
          "and host countless species. Lithuania's beaver population has "
          "grown from near extinction to one of the densest in Europe.")
 
+# ----------------------------------------------------------------- round 4 --
+doc.add_heading("Round 4 — Music (Name That Tune)", level=1)
+para("5 songs · 1 point each · song excerpts embedded in the slides "
+     "(click to play in PowerPoint)", italic=True, color=MUTED)
+para("Hidden theme of the round: every track is about the sea — a nod to "
+     "Čiurlionis's symphonic poem “Jūra”. Reveal the link at the end for an "
+     "optional extra point.", italic=True, color=MUTED)
+
+question(
+    1, 5, "Name this song (play the excerpt). Bonus point for the artist.",
+    hint="From a 2016 Disney film about a Pacific island voyager.",
+    answer="“How Far I'll Go” — Auli'i Cravalho",
+    fact="From Disney's “Moana” (2016); the ocean keeps calling her past "
+         "the reef.")
+
+question(
+    2, 5, "Name this song (play the excerpt). Bonus point for the artist.",
+    hint="The love theme from the highest-grossing film of the 1990s.",
+    answer="“My Heart Will Go On” — Céline Dion",
+    fact="The theme from “Titanic” (1997) — an ocean liner, and another "
+         "track all at sea.")
+
+question(
+    3, 5, "Name this song (play the excerpt). Bonus point for the artist.",
+    hint="A Lithuanian act — and the title is the Lithuanian word for "
+         "“the sea”.",
+    answer="“Jūra” — HappyEndless",
+    fact="“Jūra” is Lithuanian for “the sea” — the most direct clue to the "
+         "round's hidden theme.")
+
+question(
+    4, 5, "Name this song (play the excerpt). Bonus point for the artist.",
+    hint="A 1966 sing-along by the most famous band from Liverpool.",
+    answer="“Yellow Submarine” — The Beatles",
+    fact="1966 — “we all live in a yellow submarine”, somewhere beneath "
+         "the sea.")
+
+question(
+    5, 5, "Name this song (play the excerpt). Bonus point for the artist.",
+    hint="The 2015 breakout track, written when the singer was 13.",
+    answer="“Ocean Eyes” — Billie Eilish",
+    fact="Billie Eilish's debut, 2015 — the fifth and final clue that every "
+         "song in this round is about the sea.")
+
 # ------------------------------------------------------------- bonus round --
 doc.add_heading("Bonus Round — The Brussels Bubble", level=1)
 para("Insider questions · for those who were in the room", italic=True,
@@ -362,8 +406,9 @@ for line in [
     "international audience.",
     "Questions regrouped into balanced themed rounds: Round 1 — Europe & "
     "Fun Facts (6 multiple-choice), Round 2 — Lithuania (8), Round 3 — "
-    "Environment & Nature (4), plus a Brussels Bubble bonus round (3 "
-    "insider questions; the Coreper question is worth 2 points).",
+    "Environment & Nature (4), Round 4 — Music / Name That Tune (5 song "
+    "excerpts), plus a Brussels Bubble bonus round (3 insider questions; "
+    "the Coreper question is worth 2 points).",
     "Team assignment formalised: slips with Lithuanian rivers and lakes "
     "drawn at the door; a rules slide opens the evening.",
     "Production notes, source links and alternative question versions "
@@ -376,9 +421,13 @@ for line in [
     "Multiple-choice options written for all Round 1 questions and the "
     "šaltibarščiai question; a hint added to the butter/bacon question "
     "(Council Presidency).",
-    "Videos wired in with play buttons: LT United “We Are The Winners” "
-    "(excerpt to be chosen), the EU-accession promo (English subtitles "
-    "needed), and the Umaru Dikko story on its answer slide.",
+    "Audio and video embedded to play inline in PowerPoint (no YouTube "
+    "links): the five music-round excerpts, plus LT United “We Are The "
+    "Winners” (excerpt to be chosen), the EU-accession promo (English "
+    "subtitles still needed) and the Umaru Dikko story on its answer slide. "
+    "Original YouTube URLs kept in the speaker notes as a backup.",
+    "A Music round added (Name That Tune): five song excerpts, all secretly "
+    "about the sea, tying into the Čiurlionis “Jūra” idea from the draft.",
     "Lena Valaitis (2nd place, Eurovision 1981) kept as a fun fact on the "
     "answer slide rather than a separate question.",
     "Real photographs collected for nearly every question and answer "
@@ -398,8 +447,7 @@ for line in [
     "(incl. the Belém fire).",
     "Napoleon / St Anne's church; Vytis; the Pacai–Pazzi family link; "
     "Bona Sforza.",
-    "Čiurlionis + the oceans act / a music question; German street in "
-    "Vilnius.",
+    "German street in Vilnius.",
     "Kaunas modernism / Vilnius baroque; football (France / World Cup "
     "angle).",
     "Adamkus 100 / Attenborough 100; the bears offered by Slovenia.",
