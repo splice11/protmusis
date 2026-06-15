@@ -404,12 +404,14 @@ def _set_fullscreen(slide, shape_id):
             vid.set("fullScrn", "1")
 
 
-def apply_media_timing(slide, shape_id, kind, loop=False, fullscreen=False):
-    """Replace the slide's media timing with PowerPoint's “Start: In Click
-    Sequence” structure, so the clip plays as the next click while advancing
-    the slide. `loop` adds “Loop until Stopped” (used for the music excerpts);
-    `fullscreen` ticks Play Full Screen (video). This mirrors the XML
-    PowerPoint itself writes for these options."""
+def apply_media_timing(slide, shape_id, kind, loop=False, fullscreen=False,
+                       start="click"):
+    """Replace the slide's media timing. `start="click"` → Start: In Click
+    Sequence (plays as the next click while advancing); `start="auto"` →
+    Start: Automatically (plays the moment the slide opens). `loop` adds
+    “Loop until Stopped” (audio); `fullscreen` ticks Play Full Screen (video).
+    This mirrors the XML PowerPoint itself writes for these options."""
+    node_type = "clickEffect" if start == "click" else "afterEffect"
     media_el = "p:video" if kind == "video" else "p:audio"
     repeat = ' repeat="indefinite"' if loop else ""
     fullscr = ' fullScrn="1"' if (fullscreen and kind == "video") else ""
@@ -430,7 +432,7 @@ def apply_media_timing(slide, shape_id, kind, loop=False, fullscreen=False):
         '<p:par><p:cTn id="4" fill="hold">'
         '<p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>'
         '<p:par><p:cTn id="5" presetID="1" presetClass="mediaCall" '
-        'presetSubtype="0" fill="hold" nodeType="clickEffect">'
+        f'presetSubtype="0" fill="hold" nodeType="{node_type}">'
         '<p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>'
         '<p:cmd type="call" cmd="playFrom(0.0)"><p:cBhvr>'
         '<p:cTn id="6" dur="indefinite"/>'
@@ -461,13 +463,12 @@ def apply_media_timing(slide, shape_id, kind, loop=False, fullscreen=False):
 
 
 def media_box(slide, media_path, poster_path, mime, x, y, w, h,
-              fullscreen=False, loop=False, click_sequence=True):
+              fullscreen=False, loop=False, start="click"):
     """Inline media player (audio or video) framed in the round accent.
-    With `click_sequence` (the default) the clip is set to Start: In Click
-    Sequence; `loop` adds Loop until Stopped (audio) and `fullscreen` ticks
-    Play Full Screen (video). With `click_sequence=False` the clip keeps
-    PowerPoint's default play-on-click behaviour (used on the music “read”
-    slide so a click simply advances to its timer copy)."""
+    `start` is the playback start mode: "click" (In Click Sequence), "auto"
+    (Automatically, on slide open) or None (PowerPoint's default play-on-
+    click). `loop` adds Loop until Stopped (audio); `fullscreen` ticks Play
+    Full Screen (video)."""
     pad = 0.06
     shape(slide, MSO_SHAPE.RECTANGLE, Inches(x - pad), Inches(y - pad),
           Inches(w + 2 * pad), Inches(h + 2 * pad), fill=CURRENT["bright"])
@@ -475,9 +476,9 @@ def media_box(slide, media_path, poster_path, mime, x, y, w, h,
                                 Inches(h), poster_frame_image=poster_path,
                                 mime_type=mime)
     kind = "audio" if mime.startswith("audio") else "video"
-    if click_sequence:
+    if start in ("click", "auto"):
         apply_media_timing(slide, gf.shape_id, kind, loop=loop,
-                           fullscreen=fullscreen)
+                           fullscreen=fullscreen, start=start)
     elif fullscreen:
         _set_fullscreen(slide, gf.shape_id)
     return gf
@@ -730,18 +731,32 @@ def _build_answer(round_label, q_no, answer, icon=None, fact=None,
         icon_tile(s, icon, 10.85, 3.55, 3.0)
         px = 9.2
     text_w = px - 0.7 - 0.4
-    text(s, Inches(0.7), Inches(1.45), Inches(text_w), Inches(1.7), answer,
+    # brief recap of the question (people may have forgotten it by the answers
+    # round), then a clear ANSWER label, then the big prominent answer
+    recap = RECAPS.get(answer)
+    if recap:
+        text(s, Inches(0.7), Inches(1.18), Inches(text_w), Inches(0.32),
+             "QUESTION", size=11.5, bold=True, color=FOG)
+        text(s, Inches(0.7), Inches(1.5), Inches(text_w), Inches(0.7),
+             [[(recap, {"italic": True})]], size=15, color=LIGHT, spacing=1.1)
+        text(s, Inches(0.7), Inches(2.28), Inches(text_w), Inches(0.32),
+             "ANSWER", size=11.5, bold=True, color=CURRENT["bright"])
+        ay, fy = 2.6, 4.1
+    else:
+        ay, fy = 1.45, 3.65
+    text(s, Inches(0.7), Inches(ay), Inches(text_w), Inches(1.5), answer,
          size=a_size, bold=True, color=CURRENT["bright"], spacing=1.05)
     if fact:
-        fact_panel(s, fact, 0.7, 3.65, text_w, 2.95)
+        fact_panel(s, fact, 0.7, fy, text_w, 6.62 - fy)
 
 
 def _build_music_question(timer, round_label, q_no, q_total, question, audio,
                           notes=None, q_size=24):
     """A music-round riddle: the question is shown prominently on the left
-    while a small song excerpt sits in the corner as the clue. On the timer
-    copy the excerpt is set to play in the click sequence and loop until
-    stopped; on the read copy it stays plain click-to-play."""
+    while a small song excerpt sits in the corner as the clue. On the read
+    copy the excerpt plays In Click Sequence (click to start the clue); on
+    the timer copy it plays Automatically and loops until stopped, so the
+    clue runs by itself while the countdown ticks down."""
     s = add_slide(notes=notes)
     edge_bar(s)
     q_header(s, round_label, q_no, q_total)
@@ -755,7 +770,7 @@ def _build_music_question(timer, round_label, q_no, q_total, question, audio,
     poster = make_poster(f"track{q_no}", CURRENT["bright"], f"TRACK {q_no}",
                          size=(640, 360))
     media_box(s, audio, poster, "audio/mpeg", vx, vy, vw, vh,
-              loop=timer, click_sequence=timer)
+              loop=timer, start=("auto" if timer else "click"))
     text(s, Inches(vx), Inches(vy + vh + 0.14), Inches(vw), Inches(0.4),
          [[("♪  Listen for the clue",
             {"italic": True})]], size=10.5, color=FOG, align=PP_ALIGN.CENTER)
@@ -824,6 +839,75 @@ def closing_slide():
          "Time to count the points", size=19, bold=True,
          color=THEMES["R2"]["bright"], align=PP_ALIGN.CENTER)
     tricolour_bars(s, 6.5)
+
+
+# Brief recap of each question, shown above the answer (keyed by answer text),
+# so teams remember what was asked once we reach the answers round.
+RECAPS = {
+    "B — Pheasant Island":
+        "Which European island changes country every six months?",
+    "B — The European flag":
+        "Which EU symbol was unveiled decades ago (and recently turned ~70)?",
+    "B — The Nobel Peace Prize":
+        "Which major international award did the EU win in 2012?",
+    "D — The €500 note":
+        "Which euro banknote was nicknamed “Bin Laden”?",
+    "D — Austria":
+        "Which EU country reached the World Cup for the first time since 1998?",
+    "A — The crate was improperly labelled":
+        "Umaru Dikko, 1984 — what went wrong with the diplomatic crate?",
+    "B — Metal rivets":
+        "What innovation made the Latvia-born inventor's blue jeans famous?",
+    "C — The life-support systems":
+        "Which part of the Artemis II spacecraft did ESA build?",
+    "“We Are The Winners”":
+        "2006 Eurovision — the song that declared victory in advance?",
+    "Amber":
+        "What did the two Lithuanian mountaineers scatter from Everest?",
+    "Denmark":
+        "Which country out-produced 1938 Lithuania in butter and bacon?",
+    "The fern flower":
+        "Which mythical flower is sought on Midsummer night?",
+    "Voting rights":
+        "What did Lithuanian women gain in 1918?",
+    "Egyptian mummies":
+        "Which souvenirs were thrown overboard during the storm at sea?",
+    "Joining the European Union":
+        "Which approaching event did the cepelinai street-food promo reflect?",
+    "Pink":
+        "What colour is the soup of the beloved Vilnius festival?",
+    "Headphones":
+        "120 of what did Metallica's Antarctic audience use?",
+    "Great apes":
+        "Which animals did the three “Trimates” study?",
+    "The Nature Restoration Law":
+        "Which EU law hit the news after soldiers died in a training-area bog?",
+    "The beaver":
+        "Which “ecosystem engineer” builds wetlands?",
+    "Finland":
+        "Which EU state is roughly three-quarters covered by forest?",
+    "The Danube":
+        "Which river runs through or borders the most European countries?",
+    "A submarine":
+        "Which device, dreamed of since antiquity, was hidden by OOO?",
+    "“OceanEye”":
+        "Name the EU initiative for world-leading ocean intelligence by 2035.",
+    "“Moana” (a.k.a. “Vaiana”)":
+        "Which 2016 film, renamed across Europe, is about saving the sea?",
+    "James Cameron":
+        "Who made a 1997 blockbuster so he could visit the real wreck?",
+    "“…and those at sea”":
+        "The Greeks' three kinds of people: the living, the dead, and…?",
+    "The Waste Framework Directive":
+        "On which file did Romania praise Lithuania for being so active?",
+    "“Scrutiny reservation” — on the Nature Restoration Law":
+        "What did Lithuania's DPR say at the split Coreper I — and on which "
+        "file?",
+    "A rumour that a bomb was on board":
+        "How did the USSR try to derail the Baltic Star peace cruise?",
+    "Napoleon Bonaparte":
+        "Who so admired tiny St Anne's Church in 1812 Vilnius?",
+}
 
 
 # ------------------------------------------------------------------ deck ---
