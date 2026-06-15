@@ -16,8 +16,13 @@ English for an international audience. Production notes from the draft
 | `Trivia_Night_2026-06-16.pptx` | The deck (60 slides, 16:9) — open in PowerPoint |
 | `Trivia_Night_2026-06-16.pdf` | Static preview — **re-export from PowerPoint** after rebuilding; a PDF cannot play the embedded audio/video |
 | `Trivia_Night_2026-06-16_run_of_show.docx` | Run of show: every round/question/answer in presentation order, plus the changes made relative to the draft |
+| `Trivia_Night_2026-06-16_answer_key.docx` | Printable A4 answer key (brief question + answer + points per round) for marking team answers |
+| `team_cards/table_signs.docx` | A4-landscape table signs — one giant team name per page (Lithuanian rivers/lakes) for the tables |
+| `team_cards/draw_slips.docx` | A4 draw slips — five per team (one per member) to draw at the door |
 | `generate_slides.py` | Builds the deck: `pip install python-pptx Pillow && python3 generate_slides.py` |
 | `generate_rundown.py` | Builds the run-of-show docx: `pip install python-docx && python3 generate_rundown.py` |
+| `generate_answer_sheet.py` | Builds the answer key: `pip install python-docx && python3 generate_answer_sheet.py` |
+| `generate_team_cards.py` | Builds the team signs and draw slips: `pip install python-docx && python3 generate_team_cards.py` |
 | `fetch_assets.py` | Downloads/renders the illustrations into `assets/`: `pip install cairosvg && python3 fetch_assets.py` |
 | `assets/` | Rendered illustrations (committed, so the deck builds offline) |
 | `photos/` | Photographs and album art (`song_*`) used on the slides |
