@@ -97,11 +97,11 @@ para("Fair play: no phones — diplomatic immunity does not cover googling.")
 
 # ----------------------------------------------------------------- round 1 --
 doc.add_heading("Round 1 — Europe & Fun Facts", level=1)
-para("Multiple choice · 6 questions · 1 point each", italic=True,
+para("Multiple choice · 8 questions · 1 point each", italic=True,
      color=MUTED)
 
 question(
-    1, 6, "Which European island changes sovereignty every six months?",
+    1, 8, "Which European island changes sovereignty every six months?",
     options=[("A", "Heligoland"), ("B", "Pheasant Island"), ("C", "Jersey"),
              ("D", "Bornholm")],
     correct="B", answer="B — Pheasant Island",
@@ -111,7 +111,7 @@ question(
          "world's oldest condominium.")
 
 question(
-    2, 6, "Which EU symbol was publicly unveiled about 40 years ago?",
+    2, 8, "Which EU symbol was publicly unveiled about 40 years ago?",
     options=[("A", "Euro coins"), ("B", "European flag"),
              ("C", "European anthem"), ("D", "Schengen passport")],
     correct="B", answer="B — The European flag",
@@ -120,7 +120,7 @@ question(
          "a symbol of unity, unchanged ever since.")
 
 question(
-    3, 6, "What major international award did the European Union receive "
+    3, 8, "What major international award did the European Union receive "
           "in 2012?",
     options=[("A", "Sakharov Prize"), ("B", "Nobel Peace Prize"),
              ("C", "Charlemagne Prize"), ("D", "Right Livelihood Award")],
@@ -129,7 +129,7 @@ question(
          "peace, reconciliation, democracy and human rights in Europe.")
 
 question(
-    4, 6, "Which euro banknote was nicknamed “Bin Laden”?",
+    4, 8, "Which euro banknote was nicknamed “Bin Laden”?",
     options=[("A", "€50"), ("B", "€100"), ("C", "€200"), ("D", "€500")],
     correct="D", answer="D — The €500 note",
     fact="The ECB stopped issuing the €500 note in 2019 over its "
@@ -138,7 +138,17 @@ question(
          "had ever seen one.")
 
 question(
-    5, 6, "In 1984, former Nigerian minister Umaru Dikko was kidnapped in "
+    5, 8, "Which EU country is playing in this year's football World Cup "
+          "for the first time since 1998?",
+    options=[("A", "Belgium"), ("B", "Czechia"), ("C", "Sweden"),
+             ("D", "Austria")],
+    correct="D", answer="D — Austria",
+    fact="Austria are back at the World Cup finals for the first time since "
+         "France 1998 — a long wait finally over for the side in red and "
+         "white.")
+
+question(
+    6, 8, "In 1984, former Nigerian minister Umaru Dikko was kidnapped in "
           "London. His captors planned to smuggle him out of the UK in a "
           "diplomatic crate, relying on the Vienna Convention rule that "
           "diplomatic bags cannot be opened or detained. What went wrong?",
@@ -154,7 +164,7 @@ question(
           "story — shown with the answer)")
 
 question(
-    6, 6, "One of the inventors of modern blue jeans was born in "
+    7, 8, "One of the inventors of modern blue jeans was born in "
           "present-day Latvia. He developed a way to make work trousers "
           "much more durable and partnered with Levi Strauss to patent the "
           "idea. What simple innovation made the trousers famous?",
@@ -164,6 +174,18 @@ question(
     fact="Jacob Davis, a tailor born in Riga in 1831, reinforced the "
          "stress points of work trousers with copper rivets. He and Levi "
          "Strauss patented the idea in 1873 — and blue jeans were born.")
+
+question(
+    8, 8, "Earlier this year the world watched the Artemis II crew loop "
+          "around the Moon — the first crewed lunar voyage in over 50 "
+          "years. Which part of their spacecraft was built by the European "
+          "Space Agency?",
+    options=[("A", "The rocket boosters"), ("B", "The crew quarters"),
+             ("C", "The life-support systems"), ("D", "The heat shield")],
+    correct="C", answer="C — The life-support systems",
+    fact="ESA built the European Service Module that powers NASA's Orion "
+         "spacecraft — providing propulsion, electricity, and the air, "
+         "water and temperature control that keep the crew alive.")
 
 # ----------------------------------------------------------------- round 2 --
 doc.add_heading("Round 2 — Lithuania", level=1)
@@ -256,21 +278,24 @@ question(
           "“early 2000s” in the wording.")
 
 question(
-    8, 8, "Pink is strongly associated with Lithuania because of a "
-          "traditional summer dish. Which dish?",
-    options=[("A", "Cepelinai"), ("B", "Šakotis"), ("C", "Šaltibarščiai"),
-             ("D", "Kibinai")],
-    correct="C", answer="C — Šaltibarščiai",
-    fact="The electric-pink cold beet soup is Lithuania's unofficial "
-         "summer flag — best served with hot potatoes and a sunny "
-         "terrace.")
+    8, 8, "A few weeks ago a beloved Vilnius festival was held for the 4th "
+          "time. Its organisers wrote: “The most beautiful love story in "
+          "the world? No — we mean the Lithuanian love for a cold OOO "
+          "soup… it's not just a soup, it's a way of life.” What colour is "
+          "this soup?",
+    hint="In the year of the very first festival, this colour was a "
+         "worldwide craze.",
+    answer="Pink",
+    fact="Šaltibarščiai — the electric-pink cold beet soup — is Lithuania's "
+         "unofficial summer flag. The Vilnius “Pink Soup Fest” has become a "
+         "hit: last year more than 90,000 fans turned the city pink.")
 
 # ----------------------------------------------------------------- round 3 --
 doc.add_heading("Round 3 — Environment & Nature", level=1)
-para("4 questions · 1 point each", italic=True, color=MUTED)
+para("6 questions · 1 point each", italic=True, color=MUTED)
 
 question(
-    1, 4, "In 2013 Metallica became the first band to perform on all "
+    1, 6, "In 2013 Metallica became the first band to perform on all "
           "seven continents. During their Antarctic concert, the audience "
           "used 120 of what?",
     answer="Headphones",
@@ -279,7 +304,7 @@ question(
          "headphones. The concert was fittingly called “Freeze 'Em All”.")
 
 question(
-    2, 4, "Three famous scientists — Birutė Galdikas, Dian Fossey and "
+    2, 6, "Three famous scientists — Birutė Galdikas, Dian Fossey and "
           "Jane Goodall — devoted their careers to studying these animals "
           "in the wild. Collectively, they became known as the "
           "“Trimates”. What group of animals are these?",
@@ -290,7 +315,7 @@ question(
          "in Borneo. “Orangutan” means “person of the forest”.")
 
 question(
-    3, 4, "Which EU law unexpectedly entered the headlines after the "
+    3, 6, "Which EU law unexpectedly entered the headlines after the "
           "deaths of four US soldiers, whose vehicle sank in a military "
           "training area near the Lithuanian–Belarusian border?",
     answer="The Nature Restoration Law",
@@ -299,7 +324,7 @@ question(
          "putting the Nature Restoration Law unexpectedly in the news.")
 
 question(
-    4, 4, "This animal is often called an “ecosystem engineer” because it "
+    4, 6, "This animal is often called an “ecosystem engineer” because it "
           "creates wetlands that benefit countless other species. What "
           "animal is it?",
     answer="The beaver",
@@ -307,49 +332,79 @@ question(
          "and host countless species. Lithuania's beaver population has "
          "grown from near extinction to one of the densest in Europe.")
 
+question(
+    5, 6, "We all love forests — yet one EU Member State is so densely "
+          "wooded that roughly three-quarters of its land area is covered "
+          "by forest, the highest share in the whole Union. Which Member "
+          "State is it?",
+    answer="Finland",
+    fact="About three-quarters of Finland's land area is forest — the "
+         "highest share of any EU country, and the backdrop to its image "
+         "as a land of endless woods and a thousand lakes.")
+
+question(
+    6, 6, "We talk a lot about water resilience. Which river flows "
+          "through — or forms the border of — the greatest number of "
+          "countries in Europe?",
+    answer="The Danube",
+    fact="Europe's most international river runs about 2,850 km from "
+         "Germany's Black Forest to the Black Sea, flowing through or "
+         "bordering 10 countries — more than any other river in Europe.")
+
 # ----------------------------------------------------------------- round 4 --
-doc.add_heading("Round 4 — Music (Name That Tune)", level=1)
-para("5 songs · 1 point each · song excerpts embedded in the slides "
-     "(click to play in PowerPoint)", italic=True, color=MUTED)
-para("Hidden theme of the round: every track is about the sea — a nod to "
-     "Čiurlionis's symphonic poem “Jūra”. Reveal the link at the end for an "
-     "optional extra point.", italic=True, color=MUTED)
+doc.add_heading("Round 4 — Music (Name the Connection)", level=1)
+para("5 riddles · 1 point each · a song excerpt plays automatically and "
+     "loops on each slide as the clue (embedded in the deck)", italic=True,
+     color=MUTED)
+para("Hidden theme of the round: every answer is tied to the sea — a nod "
+     "to the EU's upcoming Ocean Pact (and to Čiurlionis's “Jūra”). Reveal "
+     "the link at the end for an optional extra point.", italic=True,
+     color=MUTED)
 
 question(
-    1, 5, "Name this song (play the excerpt). Bonus point for the artist.",
-    hint="From a 2016 Disney film about a Pacific island voyager.",
-    answer="“How Far I'll Go” — Auli'i Cravalho",
-    fact="From Disney's “Moana” (2016); the ocean keeps calling her past "
-         "the reef.")
+    1, 5, "Drawings and diagrams dating back centuries show that using OOO "
+          "has always been a human dream. Records from 415 BC, at the Siege "
+          "of Syracuse, even describe its organised military use. What "
+          "device hides behind OOO?",
+    answer="A submarine",
+    fact="Clue song: The Beatles' “Yellow Submarine” (1966). Humans have "
+         "dreamed of travelling underwater since antiquity — and every "
+         "answer in this round lives at sea.")
 
 question(
-    2, 5, "Name this song (play the excerpt). Bonus point for the artist.",
-    hint="The love theme from the highest-grossing film of the 1990s.",
-    answer="“My Heart Will Go On” — Céline Dion",
-    fact="The theme from “Titanic” (1997) — an ocean liner, and another "
-         "track all at sea.")
+    2, 5, "The European Commission recently launched a new initiative that, "
+          "by 2035, should make the EU the world's leading provider of OOO "
+          "intelligence. What is the initiative called?",
+    answer="“OceanEye”",
+    fact="Clue song: Billie Eilish's “Ocean Eyes” (2015). The EU's push for "
+         "world-leading ocean intelligence keeps the round firmly at sea.")
 
 question(
-    3, 5, "Name this song (play the excerpt). Bonus point for the artist.",
-    hint="A Lithuanian act — and the title is the Lithuanian word for "
-         "“the sea”.",
-    answer="“Jūra” — HappyEndless",
-    fact="“Jūra” is Lithuanian for “the sea” — the most direct clue to the "
-         "round's hidden theme.")
+    3, 5, "This 2016 animated movie centres on saving the dying heart of "
+          "this round's theme. Its 2024 sequel, like the original, had to "
+          "be renamed in some European countries. What is the film's title?",
+    answer="“Moana” (a.k.a. “Vaiana”)",
+    fact="Clue song: “How Far I'll Go” from Disney's “Moana” (2016), "
+         "renamed “Vaiana” across much of Europe — and all about the call "
+         "of the ocean.")
 
 question(
-    4, 5, "Name this song (play the excerpt). Bonus point for the artist.",
-    hint="A 1966 sing-along by the most famous band from Liverpool.",
-    answer="“Yellow Submarine” — The Beatles",
-    fact="1966 — “we all live in a yellow submarine”, somewhere beneath "
-         "the sea.")
+    4, 5, "It is said the main reason he made his 1997 blockbuster was so "
+          "that he could visit the real thing on the ocean floor. Who is "
+          "he?",
+    answer="James Cameron",
+    fact="Clue song: “My Heart Will Go On” from “Titanic” (1997). Director "
+         "James Cameron, an obsessive deep-sea explorer, has dived to the "
+         "wreck many times.")
 
 question(
-    5, 5, "Name this song (play the excerpt). Bonus point for the artist.",
-    hint="The 2015 breakout track, written when the singer was 13.",
-    answer="“Ocean Eyes” — Billie Eilish",
-    fact="Billie Eilish's debut, 2015 — the fifth and final clue that every "
-         "song in this round is about the sea.")
+    5, 5, "The Ancient Greeks said there are three kinds of people: the "
+          "living, the dead, and OOO. If you've worked out the theme of "
+          "this round, the answer shouldn't be lost on you.",
+    answer="“…and those at sea”",
+    fact="Clue song: Čiurlionis's “Jūra” (“The Sea”). The old saying — the "
+         "living, the dead, and those at sea — and the thread through every "
+         "answer tonight: the sea, and the EU's upcoming Ocean Pact.")
 
 # ------------------------------------------------------------- bonus round --
 doc.add_heading("Bonus Round — The Brussels Bubble", level=1)
@@ -393,6 +448,22 @@ question(
           "cruise's spiritus movens; the Baltic Tribunal also took place "
           "in 1985. Keep names off the slide.")
 
+# ----------------------------------------------------------- tie-breaker --
+doc.add_heading("Tie-breaker — if we need it", level=1)
+para("One question to settle a draw · used only if teams are level after "
+     "the bonus round", italic=True, color=MUTED)
+
+question(
+    1, 1, "When his army passed through Vilnius in 1812, legend says he so "
+          "admired the tiny Church of St Anne that he wished he could carry "
+          "it back to Paris in the palm of his hand. Near Kaunas, a hill is "
+          "still called his “hat”. Who was he?",
+    points="tie-breaker",
+    answer="Napoleon Bonaparte",
+    fact="As the Grande Armée marched east in 1812, Napoleon is said to "
+         "have wished he could carry St Anne's Church back to Paris in his "
+         "palm. A hill near Kaunas is still known as “Napoleon's hat”.")
+
 doc.add_heading("Closing", level=1)
 para("Thank you for playing — count the points and announce the winning "
      "team.")
@@ -407,10 +478,11 @@ for line in [
     "proposed in the brief; everything translated into English for an "
     "international audience.",
     "Questions regrouped into balanced themed rounds: Round 1 — Europe & "
-    "Fun Facts (6 multiple-choice), Round 2 — Lithuania (8), Round 3 — "
-    "Environment & Nature (4), Round 4 — Music / Name That Tune (5 song "
-    "excerpts), plus a Brussels Bubble bonus round (3 insider questions; "
-    "the Coreper question is worth 2 points).",
+    "Fun Facts (8 multiple-choice), Round 2 — Lithuania (8), Round 3 — "
+    "Environment & Nature (6), Round 4 — Music / Name the Connection (5 "
+    "riddles with song clues), plus a Brussels Bubble bonus round (3 "
+    "insider questions; the Coreper question is worth 2 points) and a "
+    "one-question tie-breaker (Napoleon / St Anne's Church).",
     "Team assignment formalised: slips with Lithuanian rivers and lakes "
     "drawn at the door; a rules slide opens the evening.",
     "Production notes, source links and alternative question versions "
@@ -420,16 +492,24 @@ for line in [
 
 para("Content decisions", bold=True)
 for line in [
-    "Multiple-choice options written for all Round 1 questions and the "
-    "šaltibarščiai question; a hint added to the butter/bacon question "
-    "(Council Presidency).",
+    "Round 1 expanded to eight multiple-choice questions, adding the World "
+    "Cup / Austria question and the Artemis II / ESA service-module "
+    "question from the latest draft.",
+    "Round 3 expanded to six questions, adding the most-forested Member "
+    "State (Finland) and the most-international river (the Danube).",
+    "Round 2's pink question reworked from a multiple-choice “which dish” "
+    "into the open “Vilnius Pink Soup Fest” question (answer: pink).",
+    "Round 4 reframed from “name this song” into five riddles whose "
+    "answers all relate to the sea; the matching song excerpt plays "
+    "automatically and loops on each slide as the clue.",
+    "A one-question tie-breaker added (Napoleon and St Anne's Church) for "
+    "use only if teams finish level.",
     "Audio and video embedded to play inline in PowerPoint (no YouTube "
-    "links): the five music-round excerpts, plus LT United “We Are The "
-    "Winners” (excerpt to be chosen), the EU-accession promo (English "
-    "subtitles still needed) and the Umaru Dikko story on its answer slide. "
-    "Original YouTube URLs kept in the speaker notes as a backup.",
-    "A Music round added (Name That Tune): five song excerpts, all secretly "
-    "about the sea, tying into the Čiurlionis “Jūra” idea from the draft.",
+    "links): the five music-round excerpts (auto-play + loop), plus LT "
+    "United “We Are The Winners” (excerpt to be chosen), the EU-accession "
+    "promo (English subtitles still needed) and the Umaru Dikko story on "
+    "its answer slide. Original YouTube URLs kept in the speaker notes as "
+    "a backup.",
     "Lena Valaitis (2nd place, Eurovision 1981) kept as a fun fact on the "
     "answer slide rather than a separate question.",
     "Real photographs collected for nearly every question and answer "
@@ -447,11 +527,9 @@ for line in [
     "One question per member state / quick-fire round idea.",
     "Questions voiced by the Minister and Selemonas Paltanavičius "
     "(incl. the Belém fire).",
-    "Napoleon / St Anne's church; Vytis; the Pacai–Pazzi family link; "
-    "Bona Sforza.",
+    "Vytis; the Pacai–Pazzi family link; Bona Sforza.",
     "German street in Vilnius.",
-    "Kaunas modernism / Vilnius baroque; football (France / World Cup "
-    "angle).",
+    "Kaunas modernism / Vilnius baroque.",
     "Adamkus 100 / Attenborough 100; the bears offered by Slovenia.",
     "Baltic Way symbols in the European Parliament.",
 ]:

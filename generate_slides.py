@@ -26,6 +26,7 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.oxml import parse_xml
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
 
@@ -300,11 +301,63 @@ def _set_fullscreen(slide, shape_id):
             vid.set("fullScrn", "1")
 
 
+def _set_autoplay_loop(slide, shape_id):
+    """Replace the slide's media timing so the embedded clip starts
+    automatically when the slide opens and loops until the slide is left.
+    PowerPoint's default (added by add_movie) is play-on-click; this swaps
+    in the “Start: Automatically” + “Loop until Stopped” timing tree."""
+    xml = (
+        '<p:timing xmlns:p="http://schemas.openxmlformats.org/'
+        'presentationml/2006/main">'
+        '<p:tnLst><p:par>'
+        '<p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot">'
+        '<p:childTnLst>'
+        '<p:seq concurrent="1" nextAc="seek">'
+        '<p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst>'
+        '<p:par><p:cTn id="3" fill="hold">'
+        '<p:stCondLst><p:cond delay="indefinite"/></p:stCondLst>'
+        '<p:childTnLst>'
+        '<p:par><p:cTn id="4" fill="hold">'
+        '<p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>'
+        '<p:par><p:cTn id="5" presetClass="mediaCall" presetID="1" '
+        'fill="hold" nodeType="afterEffect">'
+        '<p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>'
+        '<p:cmd type="call" cmd="playFrom(0.0)"><p:cBhvr>'
+        '<p:cTn id="6" dur="indefinite" fill="hold"/>'
+        f'<p:tgtEl><p:spTgt spid="{shape_id}"/></p:tgtEl>'
+        '</p:cBhvr></p:cmd>'
+        '</p:childTnLst></p:cTn></p:par>'
+        '</p:childTnLst></p:cTn></p:par>'
+        '</p:childTnLst></p:cTn></p:par>'
+        '</p:childTnLst></p:cTn>'
+        '<p:prevCondLst><p:cond evt="onPrev" delay="0">'
+        '<p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:prevCondLst>'
+        '<p:nextCondLst><p:cond evt="onNext" delay="0">'
+        '<p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:nextCondLst>'
+        '</p:seq>'
+        '<p:video><p:cMediaNode vol="80000" repeat="indefinite">'
+        '<p:cTn id="7" repeatCount="indefinite" fill="hold" display="0">'
+        '<p:stCondLst><p:cond delay="indefinite"/></p:stCondLst>'
+        '<p:endCondLst><p:cond evt="onStopAudio" delay="0">'
+        '<p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:endCondLst>'
+        f'</p:cTn><p:tgtEl><p:spTgt spid="{shape_id}"/></p:tgtEl>'
+        '</p:cMediaNode></p:video>'
+        '</p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>')
+    old = slide.element.find(qn("p:timing"))
+    new = parse_xml(xml)
+    if old is not None:
+        old.getparent().replace(old, new)
+    else:
+        slide.element.append(new)
+
+
 def media_box(slide, media_path, poster_path, mime, x, y, w, h,
-              fullscreen=False):
+              fullscreen=False, autoplay_loop=False):
     """Inline media player (audio or video) framed in the round accent.
     `fullscreen` ticks Play Full Screen so a video fills the screen on
-    click (use for video, not the music excerpts)."""
+    click (use for video, not the music excerpts). `autoplay_loop` starts
+    the clip automatically on slide open and loops it (used for the music
+    round, so the excerpt plays as a clue without anyone pressing play)."""
     pad = 0.06
     shape(slide, MSO_SHAPE.RECTANGLE, Inches(x - pad), Inches(y - pad),
           Inches(w + 2 * pad), Inches(h + 2 * pad), fill=CURRENT["bright"])
@@ -313,6 +366,8 @@ def media_box(slide, media_path, poster_path, mime, x, y, w, h,
                                 mime_type=mime)
     if fullscreen:
         _set_fullscreen(slide, gf.shape_id)
+    if autoplay_loop:
+        _set_autoplay_loop(slide, gf.shape_id)
     return gf
 
 
@@ -542,31 +597,29 @@ def answer_slide(round_label, q_no, answer, icon=None, fact=None,
         fact_panel(s, fact, 0.7, 3.65, text_w, 2.95)
 
 
-def music_question_slide(round_label, q_no, q_total, audio, hint=None,
-                         notes=None):
-    """“Name this song”: an embedded excerpt that plays inline, centred
-    behind a TRACK n poster. The answer is revealed on the next slide."""
+def music_question_slide(round_label, q_no, q_total, question, audio,
+                         notes=None, q_size=24):
+    """A music-round riddle: the question is shown prominently on the left
+    while a small song excerpt plays automatically and loops in the corner
+    as the clue. The riddle answer is revealed on the next slide."""
     s = add_slide(notes=notes)
     edge_bar(s)
     kicker(s, round_label, f"QUESTION {q_no} OF {q_total} · 1 POINT")
-    text(s, Inches(0.7), Inches(1.4), Inches(11.93), Inches(0.9),
-         "NAME THIS SONG", size=46, color=PAPER, font=DISPLAY,
-         align=PP_ALIGN.CENTER)
-    text(s, Inches(0.7), Inches(2.4), Inches(11.93), Inches(0.4),
-         [[("Bonus point if you can name the artist",
-            {"italic": True})]], size=16, color=FOG, align=PP_ALIGN.CENTER)
-    poster = make_poster(f"track{q_no}", CURRENT["bright"], f"TRACK {q_no}",
-                         sub="PRESS PLAY")
-    vw = 6.4
+    # small auto-playing, looping clip tucked to the right as the clue
+    vw = 3.3
     vh = vw * 9 / 16
-    media_box(s, audio, poster, "audio/mpeg", (13.333 - vw) / 2, 2.95,
-              vw, vh)
-    if hint:
-        text(s, Inches(0.7), Inches(6.6), Inches(11.93), Inches(0.4),
-             [[("HINT   ", {"bold": True, "color": CURRENT["bright"],
-                            "size": 14}),
-               (hint, {"size": 14, "color": FOG, "italic": True})]],
-             align=PP_ALIGN.CENTER)
+    vx = RIGHT - vw
+    vy = 2.45
+    poster = make_poster(f"track{q_no}", CURRENT["bright"], f"TRACK {q_no}",
+                         sub="NOW PLAYING", size=(640, 360))
+    media_box(s, audio, poster, "audio/mpeg", vx, vy, vw, vh,
+              autoplay_loop=True)
+    text(s, Inches(vx), Inches(vy + vh + 0.14), Inches(vw), Inches(0.4),
+         [[("♪  Plays automatically — listen for the clue",
+            {"italic": True})]], size=10.5, color=FOG, align=PP_ALIGN.CENTER)
+    qw = vx - 0.7 - 0.45
+    text(s, Inches(0.7), Inches(1.55), Inches(qw), Inches(4.7),
+         question, size=q_size, bold=True, color=PAPER, spacing=1.15)
 
 
 def closing_slide():
@@ -591,11 +644,11 @@ rules_slide()
 # ===== ROUND 1 ==============================================================
 R1 = "ROUND 1 · EUROPE & FUN FACTS"
 divider("R1", "ROUND 1", "Europe & Fun Facts",
-        "Multiple choice · 6 questions · 1 point each",
+        "Multiple choice · 8 questions · 1 point each",
         ["globe", "euro_note", "jeans"], num="1")
 
 question_slide(
-    R1, 1, 6, "Which European island changes sovereignty every six months?",
+    R1, 1, 8, "Which European island changes sovereignty every six months?",
     "globe",
     options=[("A", "Heligoland"), ("B", "Pheasant Island"), ("C", "Jersey"),
              ("D", "Bornholm")])
@@ -608,7 +661,7 @@ answer_slide(
          "world's oldest condominium.")
 
 question_slide(
-    R1, 2, 6, "Which EU symbol was publicly unveiled about 40 years ago?",
+    R1, 2, 8, "Which EU symbol was publicly unveiled about 40 years ago?",
     "star",
     options=[("A", "Euro coins"), ("B", "European flag"),
              ("C", "European anthem"), ("D", "Schengen passport")])
@@ -621,7 +674,7 @@ answer_slide(
          "a symbol of unity, unchanged ever since.")
 
 question_slide(
-    R1, 3, 6, "What major international award did the European Union "
+    R1, 3, 8, "What major international award did the European Union "
               "receive in 2012?",
     "medal",
     options=[("A", "Sakharov Prize"), ("B", "Nobel Peace Prize"),
@@ -633,7 +686,7 @@ answer_slide(
          "peace, reconciliation, democracy and human rights in Europe.")
 
 question_slide(
-    R1, 4, 6, "Which euro banknote was nicknamed “Bin Laden”?",
+    R1, 4, 8, "Which euro banknote was nicknamed “Bin Laden”?",
     "euro_note",
     options=[("A", "€50"), ("B", "€100"), ("C", "€200"), ("D", "€500")],
     notes="Source: https://www.theguardian.com/business/2016/may/04/"
@@ -645,7 +698,20 @@ answer_slide(
          "knew what it looked like but almost no one had ever seen one.")
 
 question_slide(
-    R1, 5, 6, "In 1984, former Nigerian minister Umaru Dikko was kidnapped "
+    R1, 5, 8, "Which EU country is playing in this year's football World "
+              "Cup for the first time since 1998?",
+    "trophy",
+    options=[("A", "Belgium"), ("B", "Czechia"), ("C", "Sweden"),
+             ("D", "Austria")])
+answer_slide(
+    R1, 5, "D — Austria", photo="austria_football.jpg",
+    credit="Photo: ÖFB / match action",
+    fact="Austria are back at the World Cup finals for the first time since "
+         "France 1998 — a long wait finally over for the side in red and "
+         "white.")
+
+question_slide(
+    R1, 6, 8, "In 1984, former Nigerian minister Umaru Dikko was kidnapped "
               "in London. His captors planned to smuggle him out of the UK "
               "in a diplomatic crate, relying on the Vienna Convention rule "
               "that diplomatic bags cannot be opened or detained.\n\nWhat "
@@ -657,7 +723,7 @@ question_slide(
              ("C", "The aircraft meant to transport him never arrived")],
     notes="Background video: https://www.youtube.com/watch?v=N83Idy9IOmU")
 answer_slide(
-    R1, 5, "A — The crate was improperly labelled", a_size=32,
+    R1, 6, "A — The crate was improperly labelled", a_size=32,
     movie={"key": "dikko", "file": "media/video/umaru_dikko_kidnap.mp4",
            "poster_src": "photos/dikko_crate_stansted_1984.jpg",
            "label": "PLAY THE STORY", "title": "The Umaru Dikko affair",
@@ -670,7 +736,7 @@ answer_slide(
           "https://www.youtube.com/watch?v=N83Idy9IOmU")
 
 question_slide(
-    R1, 6, 6, "One of the inventors of modern blue jeans was born in "
+    R1, 7, 8, "One of the inventors of modern blue jeans was born in "
               "present-day Latvia. He developed a way to make work trousers "
               "much more durable and partnered with Levi Strauss to patent "
               "the idea.\n\nWhat simple innovation made the trousers "
@@ -679,10 +745,26 @@ question_slide(
     options=[("A", "A zipper"), ("B", "Metal rivets"),
              ("C", "Waterproof fabric"), ("D", "Belt loops")])
 answer_slide(
-    R1, 6, "B — Metal rivets", photo="jeans_rivets.jpg",
+    R1, 7, "B — Metal rivets", photo="jeans_rivets.jpg",
     fact="Jacob Davis, a tailor born in Riga in 1831, reinforced the stress "
          "points of work trousers with copper rivets. He and Levi Strauss "
          "patented the idea in 1873 — and blue jeans were born.")
+
+question_slide(
+    R1, 8, 8, "Earlier this year the world watched the Artemis II crew loop "
+              "around the Moon — the first crewed lunar voyage in over 50 "
+              "years.\n\nWhich part of their spacecraft was built by the "
+              "European Space Agency?",
+    "star", q_size=22,
+    options=[("A", "The rocket boosters"), ("B", "The crew quarters"),
+             ("C", "The life-support systems"), ("D", "The heat shield")])
+answer_slide(
+    R1, 8, "C — The life-support systems", a_size=32,
+    photo="artemis2_sls_launchpad.jpg",
+    credit="Photo: NASA",
+    fact="ESA built the European Service Module that powers NASA's Orion "
+         "spacecraft — providing propulsion, electricity, and the air, "
+         "water and temperature control that keep the crew alive.")
 
 # ===== ROUND 2 ==============================================================
 R2 = "ROUND 2 · LITHUANIA"
@@ -815,25 +897,29 @@ answer_slide(
          "street-food revolution is still pending.")
 
 question_slide(
-    R2, 8, 8, "Pink is strongly associated with Lithuania because of a "
-              "traditional summer dish.\n\nWhich dish?",
-    "blossom",
-    options=[("A", "Cepelinai"), ("B", "Šakotis"), ("C", "Šaltibarščiai"),
-             ("D", "Kibinai")])
+    R2, 8, 8, "A few weeks ago a beloved Vilnius festival was held for the "
+              "4th time. Its organisers wrote:\n\n“The most beautiful love "
+              "story in the world? No — we mean the Lithuanian love for a "
+              "cold OOO soup… it's not just a soup, it's a way of "
+              "life.”\n\nWhat colour is this soup?",
+    "blossom", q_size=21,
+    hint="In the year of the very first festival, this colour was a "
+         "worldwide craze.")
 answer_slide(
-    R2, 8, "C — Šaltibarščiai", photo="saltibarsciai.jpg",
-    fact="The electric-pink cold beet soup is Lithuania's unofficial "
-         "summer flag — best served with hot potatoes and a sunny terrace.")
+    R2, 8, "Pink", photo="saltibarsciai.jpg",
+    fact="Šaltibarščiai — the electric-pink cold beet soup — is Lithuania's "
+         "unofficial summer flag. The Vilnius “Pink Soup Fest” has become a "
+         "hit: last year more than 90,000 fans turned the city pink.")
 
 # ===== ROUND 3 ==============================================================
 R3 = "ROUND 3 · ENVIRONMENT & NATURE"
 # NB: no beaver or headphones on the divider — both are answers in this round
 divider("R3", "ROUND 3", "Environment & Nature",
-        "4 questions · 1 point each",
+        "6 questions · 1 point each",
         ["tree", "fern", "deer"], num="3", size=50)
 
 question_slide(
-    R3, 1, 4, "In 2013 Metallica became the first band to perform on all "
+    R3, 1, 6, "In 2013 Metallica became the first band to perform on all "
               "seven continents.\n\nDuring their Antarctic concert, the "
               "audience used 120 of what?",
     photo="metallica_freeze_em_all.jpg")
@@ -846,7 +932,7 @@ answer_slide(
          "headphones. The concert was fittingly called “Freeze 'Em All”.")
 
 question_slide(
-    R3, 2, 4, "Three famous scientists — Birutė Galdikas, Dian Fossey and "
+    R3, 2, 6, "Three famous scientists — Birutė Galdikas, Dian Fossey and "
               "Jane Goodall — devoted their careers to studying these "
               "animals in the wild.\n\nCollectively, they became known as "
               "the “Trimates”.\n\nWhat group of animals are these?",
@@ -861,7 +947,7 @@ answer_slide(
          "in Borneo. “Orangutan” means “person of the forest”.")
 
 question_slide(
-    R3, 3, 4, "Which EU law unexpectedly entered the headlines after the "
+    R3, 3, 6, "Which EU law unexpectedly entered the headlines after the "
               "deaths of four US soldiers, whose vehicle sank in a military "
               "training area near the Lithuanian–Belarusian border?",
     photo="pabrade_recovery_2025.jpg")
@@ -873,7 +959,7 @@ answer_slide(
          "putting the Nature Restoration Law unexpectedly in the news.")
 
 question_slide(
-    R3, 4, 4, "This animal is often called an “ecosystem engineer” because "
+    R3, 4, 6, "This animal is often called an “ecosystem engineer” because "
               "it creates wetlands that benefit countless other "
               "species.\n\nWhat animal is it?",
     photo="pond_ecosystem.jpg")
@@ -883,64 +969,104 @@ answer_slide(
          "and host countless species. Lithuania's beaver population has "
          "grown from near extinction to one of the densest in Europe.")
 
+question_slide(
+    R3, 5, 6, "We all love forests — yet one EU Member State is so densely "
+              "wooded that roughly three-quarters of its land area is "
+              "covered by forest, the highest share in the whole "
+              "Union.\n\nWhich Member State is it?",
+    "tree", q_size=23)
+answer_slide(
+    R3, 5, "Finland", photo="finland_forest.jpg",
+    credit="Photo: Jari Salonen",
+    fact="About three-quarters of Finland's land area is forest — the "
+         "highest share of any EU country, and the backdrop to its image as "
+         "a land of endless woods and a thousand lakes.")
+
+question_slide(
+    R3, 6, 6, "We talk a lot about water resilience.\n\nWhich river flows "
+              "through — or forms the border of — the greatest number of "
+              "countries in Europe?",
+    "wave", q_size=24)
+answer_slide(
+    R3, 6, "The Danube", photo="danube_budapest.jpg",
+    credit="Photo: the Danube in Budapest",
+    fact="Europe's most international river runs about 2,850 km from "
+         "Germany's Black Forest to the Black Sea, flowing through or "
+         "bordering 10 countries — more than any other river in Europe.")
+
 # ===== ROUND 4 — MUSIC ======================================================
 RM = "ROUND 4 · MUSIC"
-divider("RM", "ROUND 4", "Name That Tune",
-        "5 songs · 1 point each · press play",
-        ["microphone", "guitar", "headphones"], num="4", size=64,
-        notes="Each slide plays an embedded excerpt — just click the play "
-              "button. Teams write down the song (bonus point for the "
-              "artist). The twist: every track is about the sea — a nod to "
-              "Čiurlionis's symphonic poem “Jūra”. You can reveal that link "
-              "at the end of the round for an extra point.")
+divider("RM", "ROUND 4", "Name the Connection",
+        "5 riddles · 1 point each · listen for the clue",
+        ["microphone", "guitar", "headphones"], num="4", size=52,
+        notes="Each slide poses a riddle while a song excerpt plays "
+              "automatically and loops in the corner as the clue. Teams "
+              "write the answer to the riddle — every answer is tied to the "
+              "sea, a nod to the EU's upcoming Ocean Pact (and to "
+              "Čiurlionis's “Jūra”). Reveal the link at the end for a bonus.")
 
 music_question_slide(
-    RM, 1, 5, "media/audio/how_far_ill_go.mp3",
-    hint="From a 2016 Disney film about a Pacific island voyager.")
+    RM, 1, 5, "Drawings and diagrams dating back centuries show that using "
+              "OOO has always been a human dream. Records from 415 BC, at "
+              "the Siege of Syracuse, even describe its organised military "
+              "use.\n\nWhat device hides behind OOO?",
+    "media/audio/yellow_submarine.mp3", q_size=23)
 answer_slide(
-    RM, 1, "“How Far I'll Go”", a_size=40,
+    RM, 1, "A submarine", a_size=40,
+    photo="song_yellow_submarine.jpg", credit="Album art: Apple / EMI",
+    fact="The clue: The Beatles' “Yellow Submarine” (1966). Humans have "
+         "dreamed of travelling underwater since antiquity — and every "
+         "answer in this round lives at sea.")
+
+music_question_slide(
+    RM, 2, 5, "The European Commission recently launched a new initiative "
+              "that, by 2035, should make the EU the world's leading "
+              "provider of OOO intelligence.\n\nWhat is the initiative "
+              "called?",
+    "media/audio/ocean_eyes.mp3", q_size=24)
+answer_slide(
+    RM, 2, "“OceanEye”", a_size=42,
+    photo="song_ocean_eyes.png", credit="Single cover: Darkroom / Interscope",
+    fact="The clue: Billie Eilish's “Ocean Eyes” (2015). The EU's push for "
+         "world-leading ocean intelligence keeps the round firmly at sea.")
+
+music_question_slide(
+    RM, 3, 5, "This 2016 animated movie centres on saving the dying heart "
+              "of this round's theme. Its 2024 sequel, like the original, "
+              "had to be renamed in some European countries.\n\nWhat is the "
+              "film's title?",
+    "media/audio/how_far_ill_go.mp3", q_size=23)
+answer_slide(
+    RM, 3, "“Moana” (a.k.a. “Vaiana”)", a_size=34,
     photo="song_how_far_ill_go.png", credit="Cover: Walt Disney Records",
-    fact="Sung by Auli'i Cravalho in Disney's “Moana” (2016) — the ocean "
-         "keeps calling her past the reef. Theme of the round: the sea.")
+    fact="The clue: “How Far I'll Go” from Disney's “Moana” (2016), renamed "
+         "“Vaiana” across much of Europe — and all about the call of the "
+         "ocean.")
 
 music_question_slide(
-    RM, 2, 5, "media/audio/my_heart_will_go_on.mp3",
-    hint="The love theme from the highest-grossing film of the 1990s.")
+    RM, 4, 5, "It is said the main reason he made his 1997 blockbuster was "
+              "so that he could visit the real thing on the ocean "
+              "floor.\n\nWho is he?",
+    "media/audio/my_heart_will_go_on.mp3", q_size=24)
 answer_slide(
-    RM, 2, "“My Heart Will Go On”", a_size=38,
+    RM, 4, "James Cameron", a_size=40,
     photo="song_my_heart_will_go_on.png",
     credit="Single cover: Columbia / Sony",
-    fact="Céline Dion's theme from “Titanic” (1997) — an ocean liner, and "
-         "another track all at sea.")
+    fact="The clue: “My Heart Will Go On” from “Titanic” (1997). Director "
+         "James Cameron, an obsessive deep-sea explorer, has dived to the "
+         "wreck many times.")
 
 music_question_slide(
-    RM, 3, 5, "media/audio/jura_happyendless.mp3",
-    hint="A Lithuanian act — and the title is the Lithuanian word for "
-         "“the sea”.")
+    RM, 5, 5, "The Ancient Greeks said there are three kinds of people: the "
+              "living, the dead, and OOO.\n\nIf you've worked out the theme "
+              "of this round, the answer shouldn't be lost on you.",
+    "media/audio/jura_happyendless.mp3", q_size=24)
 answer_slide(
-    RM, 3, "“Jūra” — HappyEndless", a_size=36,
+    RM, 5, "“…and those at sea”", a_size=36,
     photo="song_jura_happyendless.jpg",
-    fact="“Jūra” is Lithuanian for “the sea” — the most direct clue to the "
-         "round's hidden theme.")
-
-music_question_slide(
-    RM, 4, 5, "media/audio/yellow_submarine.mp3",
-    hint="A 1966 sing-along by the most famous band from Liverpool.")
-answer_slide(
-    RM, 4, "“Yellow Submarine”", a_size=40,
-    photo="song_yellow_submarine.jpg",
-    credit="Album art: Apple / EMI",
-    fact="The Beatles, 1966 — “we all live in a yellow submarine”, somewhere "
-         "beneath the sea.")
-
-music_question_slide(
-    RM, 5, 5, "media/audio/ocean_eyes.mp3",
-    hint="The 2015 breakout track, written when the singer was 13.")
-answer_slide(
-    RM, 5, "“Ocean Eyes”", a_size=42,
-    photo="song_ocean_eyes.png", credit="Single cover: Darkroom / Interscope",
-    fact="Billie Eilish's debut, 2015 — and the fifth and final clue: every "
-         "song in this round is about the sea.")
+    fact="The clue: Čiurlionis's “Jūra” (“The Sea”). The old saying — the "
+         "living, the dead, and those at sea — and the thread through every "
+         "answer tonight: the sea, and the EU's upcoming Ocean Pact.")
 
 # ===== BONUS ROUND ==========================================================
 RB = "BONUS · THE BRUSSELS BUBBLE"
@@ -1000,6 +1126,27 @@ answer_slide(
          "demonstration was reported across the Scandinavian and wider "
          "European press — a loud reminder that the Baltic states had not "
          "been forgotten.")
+
+# ===== TIE-BREAKER ==========================================================
+TB = "TIE-BREAKER"
+divider("R1", "TIE-BREAKER", "If We Need It",
+        "One question to settle a draw",
+        ["scroll"], num="★", size=64,
+        notes="Only used if teams are level after the bonus round.")
+
+question_slide(
+    TB, 1, 1, "When his army passed through Vilnius in 1812, legend says he "
+              "so admired the tiny Church of St Anne that he wished he could "
+              "carry it back to Paris in the palm of his hand. Near Kaunas, "
+              "a hill is still called his “hat”.\n\nWho was he?",
+    "scroll", q_size=22, points="tie-breaker")
+answer_slide(
+    TB, 1, "Napoleon Bonaparte", a_size=36,
+    photo="napoleon_in_his_study.jpg",
+    credit="Jacques-Louis David, 1812 (public domain)",
+    fact="As the Grande Armée marched east in 1812, Napoleon is said to "
+         "have wished he could carry St Anne's Church back to Paris in his "
+         "palm. A hill near Kaunas is still known as “Napoleon's hat”.")
 
 closing_slide()
 

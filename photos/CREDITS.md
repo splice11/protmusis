@@ -54,3 +54,16 @@ original publication — those credits are best guesses.
 
 All photos were converted to JPEG, max 1920 px (flat artwork kept as PNG
 for crisp edges; the Eurovision logo recoloured from black to white).
+
+## Third batch (June 2026 upload — new questions)
+
+Uploaded for the questions added in the latest draft. Converted to JPEG
+(snake_case names; the Napoleon portrait downscaled to 2200 px).
+
+| File | Shows | Slide | Source / attribution |
+|---|---|---|---|
+| `austria_football.jpg` | Austria footballer celebrating in the red home kit | R1 A5 | Match-action press photo (ÖFB / agency), source untraced — **to confirm** |
+| `artemis2_sls_launchpad.jpg` | Artemis II SLS rocket and Orion stack on the launch pad | R1 A8 | NASA (NASA imagery is generally public domain) — **to confirm exact credit** |
+| `finland_forest.jpg` | Snow-covered Finnish forest from the air | R3 A5 | Photo: Jari Salonen (filename credit) — **to confirm** |
+| `danube_budapest.jpg` | The Danube through Budapest, Chain Bridge and Parliament | R3 A6 | Stock/tourism photo of Budapest on the Danube, source untraced — **to confirm** |
+| `napoleon_in_his_study.jpg` | *The Emperor Napoleon in His Study at the Tuileries* | Tie-breaker A | Jacques-Louis David, 1812 — public domain (Google Art Project, via Wikimedia Commons) |
