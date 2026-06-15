@@ -68,3 +68,4 @@ Uploaded for the questions added in the latest draft. Converted to JPEG
 | `danube_budapest.jpg` | The Danube through Budapest, Chain Bridge and Parliament | R3 A6 | Stock/tourism photo of Budapest on the Danube, source untraced — **to confirm** |
 | `what_is_a_river.jpg` | Generic river image used on the Danube question slide | R3 Q6 | User-provided image; generated artifact also embeds a renamed copy as `generic_river.jpg` |
 | `napoleon_in_his_study.jpg` | *The Emperor Napoleon in His Study at the Tuileries* | Tie-breaker A | Jacques-Louis David, 1812 — public domain (Google Art Project, via Wikimedia Commons) |
+| `song_jura_happyendless.jpg` | *Jūra* — a painting from Čiurlionis's Sonata of the Sea, shown as the Music round's sea clue | R4 A5 | M. K. Čiurlionis, 1908 — public domain |

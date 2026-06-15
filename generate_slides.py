@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate the Trivia Night deck (16 June, Permanent Representation of
-Lithuania to the EU) from the questions drafted in `Klausimai protmūšiui.docx`.
+Lithuania to the EU) from the questions drafted in
+`Klausimai protmūšiui (2).docx`.
 
 Format: one slide per question, followed by one slide with the answer.
 Question illustrations are real photos from `photos/` where available
@@ -236,6 +237,46 @@ def kicker(slide, left, right=None):
              right, size=13, bold=True, color=FOG, align=PP_ALIGN.RIGHT)
 
 
+def _chip(slide, x, y, h, lines, fill, edge=None, txt_color=INK, font=FONT):
+    """Filled rectangular chip sized to its text. `lines` is a list of
+    paragraphs (each a list of (text, fmt) runs). Returns the right edge x."""
+    pad = 0.24
+    widest = max(
+        sum(_measure(t, f.get("size", 14), bold=f.get("bold", True))
+            for t, f in para) for para in lines)
+    cw = widest * 1.12 + 2 * pad
+    shape(slide, MSO_SHAPE.RECTANGLE, Inches(x), Inches(y), Inches(cw),
+          Inches(h), fill=fill)
+    inset = 0.12 if edge else 0.0
+    if edge:
+        shape(slide, MSO_SHAPE.RECTANGLE, Inches(x), Inches(y), Inches(0.07),
+              Inches(h), fill=edge)
+    text(slide, Inches(x + inset), Inches(y), Inches(cw - inset), Inches(h),
+         lines, color=txt_color, align=PP_ALIGN.CENTER,
+         anchor=MSO_ANCHOR.MIDDLE, font=font)
+    return x + cw
+
+
+def q_header(slide, round_label, q_no, q_total, points="1 point"):
+    """Prominent top-left header for question slides: a bright ROUND chip and
+    a high-contrast question-number chip, so teams writing answers on paper
+    can always see exactly which round and question they are on."""
+    head, _, topic = round_label.partition(" · ")
+    y, h = 0.42, 0.58
+    x = _chip(slide, 0.55, y, h, [[(head, {"bold": True, "size": 17})]],
+              fill=CURRENT["bright"], txt_color=INK, font=DISPLAY) + 0.16
+    qlabel = f"Q{q_no}" if q_total <= 1 else f"Q{q_no} / {q_total}"
+    x = _chip(slide, x, y, h,
+              [[(qlabel, {"bold": True, "size": 16,
+                          "color": CURRENT["bright"]})],
+               [(points.upper(), {"bold": True, "size": 8.5, "color": FOG})]],
+              fill=PANEL, edge=CURRENT["bright"], font=DISPLAY) + 0.2
+    if topic:
+        text(slide, Inches(x), Inches(y), Inches(max(0.5, 5.4 - x)), Inches(h),
+             topic, size=11, bold=True, color=CURRENT["bright"],
+             anchor=MSO_ANCHOR.MIDDLE)
+
+
 # --------------------------------------------------- inline audio / video --
 # Song excerpts and video clips are embedded so they play inside PowerPoint,
 # offline — no YouTube link to open. python-pptx's add_movie() handles both
@@ -285,6 +326,67 @@ def make_poster(key, accent, label, sub=None, src=None, size=(1280, 720)):
     path = os.path.join(_POSTER_DIR, key + ".png")
     img.save(path)
     return path
+
+
+# ------------------------------------------------------ countdown timer ----
+# A one-minute countdown, baked as an animated GIF (one frame per second) and
+# dropped on every question slide. PowerPoint plays animated GIFs inline in
+# slideshow mode automatically — no custom animation/timing XML — so it can't
+# trigger the “repair” prompt, and it restarts each time the slide is shown.
+def _measure(txt, size_pt, bold=True):
+    """Approximate the width (inches) of `txt` at `size_pt`, using a bundled
+    Montserrat face as a stand-in for Segoe UI — slightly wide, so chips that
+    are sized from it never clip their text."""
+    face = "fonts/Montserrat-Bold.ttf" if bold else "fonts/Montserrat-Regular.ttf"
+    return ImageFont.truetype(face, int(round(size_pt))).getlength(txt) / 72.0
+
+
+_TIMER_GIF = os.path.join(_POSTER_DIR, "countdown_60.gif")
+
+
+def make_timer_gif(path=_TIMER_GIF, seconds=60, size=(660, 210)):
+    """Render the 60→0 countdown to an animated GIF and return its path.
+    The bar drains and shifts green→amber→red; the final “TIME'S UP” frame is
+    held (very long duration) so the timer visibly stops at zero."""
+    W, H = size
+    bg, track = (0x0B, 0x0E, 0x15), (0x1B, 0x20, 0x2C)
+    green, amber, red = (0x57, 0xD2, 0x9E), (0xFB, 0xC7, 0x4A), (0xFF, 0x6B, 0x5B)
+    numf = ImageFont.truetype(_POSTER_FONT, 122)
+    endf = ImageFont.truetype(_POSTER_FONT, 86)
+    bx0, bx1, by1 = 26, W - 26, H - 26
+    by0 = by1 - 30
+    frames, durs = [], []
+    for t in range(seconds, -1, -1):
+        img = Image.new("RGB", (W, H), bg)
+        d = ImageDraw.Draw(img)
+        frac = t / seconds
+        col = green if frac > 0.5 else amber if frac > 0.2 else red
+        if t == 0:
+            label, f, fill = "TIME'S UP", endf, red
+        else:
+            label, f, fill = f"{t // 60}:{t % 60:02d}", numf, (255, 255, 255)
+        d.text((W / 2 - d.textlength(label, font=f) / 2, 18), label,
+               font=f, fill=fill)
+        d.rectangle([bx0, by0, bx1, by1], fill=track)
+        if t > 0:
+            d.rectangle([bx0, by0, bx0 + (bx1 - bx0) * frac, by1], fill=col)
+        frames.append(img)
+        durs.append(1000 if t > 0 else 600_000)
+    frames[0].save(path, save_all=True, append_images=frames[1:],
+                   duration=durs, loop=0, disposal=2, optimize=True)
+    return path
+
+
+make_timer_gif()
+
+
+def add_timer(slide):
+    """Drop the shared one-minute countdown GIF at the top-centre of a
+    question slide. It animates automatically in slideshow mode."""
+    w = 2.15
+    h = w * 210 / 660
+    slide.shapes.add_picture(_TIMER_GIF, Inches((13.333 - w) / 2),
+                             Inches(0.12), Inches(w), Inches(h))
 
 
 def _set_fullscreen(slide, shape_id):
@@ -452,7 +554,8 @@ def question_slide(round_label, q_no, q_total, question, icon=None,
                    photo_border=True):
     s = add_slide(notes=notes)
     edge_bar(s)
-    kicker(s, round_label, f"QUESTION {q_no} OF {q_total} · {points.upper()}")
+    q_header(s, round_label, q_no, q_total, points)
+    add_timer(s)
     bright = CURRENT["bright"]
     dim = mix(bright, BG, 0.8)
     if options:
@@ -461,15 +564,18 @@ def question_slide(round_label, q_no, q_total, question, icon=None,
              question, size=q_size, bold=True, color=PAPER, spacing=1.12)
         full_row = any(len(o[1]) > 38 for o in options)
         if full_row:
-            y = 4.0 if len(options) == 3 else 3.7
+            n = len(options)
+            y = 3.6 if n >= 4 else (4.0 if n == 3 else 3.7)
+            step = 0.88 if n >= 4 else 0.94
+            rowh = 0.74 if n >= 4 else 0.78
             for letter, opt in options:
                 shape(s, MSO_SHAPE.RECTANGLE, Inches(0.7), Inches(y),
-                      Inches(11.93), Inches(0.78), fill=PANEL)
-                chip(s, letter, 0.94, y + 0.16, side=0.46)
-                text(s, Inches(1.62), Inches(y), Inches(10.7), Inches(0.78),
+                      Inches(11.93), Inches(rowh), fill=PANEL)
+                chip(s, letter, 0.94, y + (rowh - 0.46) / 2, side=0.46)
+                text(s, Inches(1.62), Inches(y), Inches(10.7), Inches(rowh),
                      opt, size=17, bold=True, color=LIGHT,
                      anchor=MSO_ANCHOR.MIDDLE)
-                y += 0.94
+                y += step
         else:
             gy0 = 3.55 if len(question) < 130 else 4.15
             grid = [(0.7, gy0), (6.78, gy0), (0.7, gy0 + 1.2),
@@ -551,7 +657,8 @@ def music_question_slide(round_label, q_no, q_total, question, audio,
     The riddle answer is revealed on the next slide."""
     s = add_slide(notes=notes)
     edge_bar(s)
-    kicker(s, round_label, f"QUESTION {q_no} OF {q_total} · 1 POINT")
+    q_header(s, round_label, q_no, q_total)
+    add_timer(s)
     # small playable clip tucked to the right as the clue
     vw = 3.3
     vh = vw * 9 / 16
@@ -666,7 +773,9 @@ question_slide(
     options=[("A", "The crate was improperly labelled as diplomatic "
                    "baggage"),
              ("B", "Dikko did not fit inside the crate"),
-             ("C", "The aircraft meant to transport him never arrived")],
+             ("C", "The aircraft meant to transport him never arrived"),
+             ("D", "Customs officers had never heard of the Vienna "
+                   "Convention")],
     notes="Background video: https://www.youtube.com/watch?v=N83Idy9IOmU")
 answer_slide(
     R1, 6, "A — The crate was improperly labelled", a_size=32,
@@ -848,7 +957,7 @@ question_slide(
               "story in the world? No — we mean the Lithuanian love for a "
               "cold OOO soup… it's not just a soup, it's a way of "
               "life.”\n\nWhat colour is this soup?",
-    "blossom", q_size=21,
+    "soup", q_size=21,
     hint="In the year of the very first festival, this colour was a "
          "worldwide craze.")
 answer_slide(
@@ -1010,6 +1119,8 @@ music_question_slide(
 answer_slide(
     RM, 5, "“…and those at sea”", a_size=36,
     photo="song_jura_happyendless.jpg",
+    credit="M. K. Čiurlionis, from the Sonata of the Sea (Jūra), 1908 — "
+           "public domain",
     fact="The clue: Čiurlionis's “Jūra” (“The Sea”). The old saying — the "
          "living, the dead, and those at sea — and the thread through every "
          "answer tonight: the sea, and the EU's upcoming Ocean Pact.")

@@ -2,7 +2,7 @@
 
 Slide deck for the **16 June trivia night** at the Permanent Representation of
 Lithuania to the EU, built from the questions drafted in
-`Klausimai protmūšiui.docx`.
+`Klausimai protmūšiui (2).docx`.
 
 Format: **one slide — question, next slide — answer.** The deck is fully in
 English for an international audience. Production notes from the draft
@@ -23,7 +23,7 @@ English for an international audience. Production notes from the draft
 | `photos/` | Photographs and album art (`song_*`) used on the slides |
 | `media/audio/` | Song excerpts embedded in the Music round |
 | `media/video/` | Video clips embedded in the deck |
-| `Klausimai protmūšiui.docx` | Original question draft |
+| `Klausimai protmūšiui (2).docx` | Latest question draft (source for the deck) |
 
 ## Design
 
