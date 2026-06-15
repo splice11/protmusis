@@ -50,8 +50,8 @@ English for an international audience. Production notes from the draft
 4. **Round 3 — Environment & Nature** · 6 questions
 5. **Round 4 — Music (Name the Connection)** · 5 riddles whose answers are
    all about the sea — a nod to the EU's upcoming Ocean Pact (and to
-   Čiurlionis's *Jūra*); the matching song excerpt plays automatically and
-   loops on each slide as the clue
+   Čiurlionis's *Jūra*); the matching song excerpt is available
+   from the embedded player on each slide as the clue
 6. **Bonus — The Brussels Bubble** · 3 insider questions (1–2 points)
 7. **Tie-breaker** · one question (Napoleon / St Anne's Church), used only
    if teams finish level
@@ -66,9 +66,9 @@ title sits under each video** (and the URL is in the speaker notes) so you
 can fall back to YouTube if a clip won't play on the night.
 
 - **Music round** — five excerpts in `media/audio/` (Yellow Submarine,
-  Ocean Eyes, How Far I'll Go, My Heart Will Go On, Jūra). Each plays a
-  riddle while its clip **auto-plays and loops** from a small player in the
-  corner; the song and its album art are revealed on the answer slide.
+  Ocean Eyes, How Far I'll Go, My Heart Will Go On, Jūra). Each riddle has a
+  small embedded player in the corner; click it to hear the clue, and the
+  song and its album art are revealed on the answer slide.
 - Round 2 Q1 **answer** — LT United, *We Are The Winners*
   (`media/video/eurovision_we_are_the_winners.mp4`). The clip lives on the
   **answer** slide so it doesn't give the title away; the **question** keeps
