@@ -26,6 +26,7 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
 
 # ---------------------------------------------------------------- palette --
@@ -35,7 +36,6 @@ PAPER = RGBColor(0xFF, 0xFF, 0xFF)      # headline text
 LIGHT = RGBColor(0xDD, 0xE2, 0xEB)      # body text on dark
 FOG = RGBColor(0x95, 0x9E, 0xAF)        # secondary text on dark
 INK = RGBColor(0x10, 0x13, 0x18)        # text on bright slabs
-TILE = RGBColor(0xF7, 0xF3, 0xE9)       # icon tiles
 
 
 def mix(a, b, t):
@@ -43,27 +43,33 @@ def mix(a, b, t):
     return RGBColor(*(round(a[i] + (b[i] - a[i]) * t) for i in range(3)))
 
 
-# One saturated colour per round: EU blue, then the Lithuanian tricolour.
+# One colour per round, tuned as a harmonious jewel-tone set: EU blue, the
+# Lithuanian tricolour (gold, green, red) and a twilight indigo for music.
+# Each slab is a deep, slightly desaturated base; each bright is a luminous
+# (not neon) accent that reads on the dark slides.
 # slab = full-bleed divider background · bright = accent on dark slides ·
 # on = text colour that reads on the slab.
 THEMES = {
-    "R1": {"slab": RGBColor(0x0A, 0x32, 0x8C),
-           "bright": RGBColor(0x7B, 0xA7, 0xFF), "on": PAPER},
-    "R2": {"slab": RGBColor(0xFD, 0xB9, 0x13),
-           "bright": RGBColor(0xFF, 0xC9, 0x2E), "on": INK},
-    "R3": {"slab": RGBColor(0x00, 0x6A, 0x44),
-           "bright": RGBColor(0x46, 0xD2, 0x90), "on": PAPER},
-    "RB": {"slab": RGBColor(0xC1, 0x27, 0x2D),
-           "bright": RGBColor(0xFF, 0x70, 0x61), "on": PAPER},
-    # Music round — a deep sea teal, since every track is about the sea.
-    "RM": {"slab": RGBColor(0x0C, 0x5A, 0x6B),
-           "bright": RGBColor(0x4F, 0xD0, 0xDF), "on": PAPER},
+    "R1": {"slab": RGBColor(0x1E, 0x3C, 0x86),
+           "bright": RGBColor(0x8C, 0xB0, 0xFF), "on": PAPER},
+    "R2": {"slab": RGBColor(0xE7, 0xA5, 0x1C),
+           "bright": RGBColor(0xFB, 0xC7, 0x4A), "on": INK},
+    "R3": {"slab": RGBColor(0x16, 0x77, 0x55),
+           "bright": RGBColor(0x57, 0xD2, 0x9E), "on": PAPER},
+    "RB": {"slab": RGBColor(0xC2, 0x3B, 0x3B),
+           "bright": RGBColor(0xFF, 0x8A, 0x7B), "on": PAPER},
+    # Music round — a twilight indigo: distinct from the others, calm and
+    # premium, the colour of a concert at dusk by the sea.
+    "RM": {"slab": RGBColor(0x46, 0x3C, 0x8E),
+           "bright": RGBColor(0xA9, 0x9D, 0xFF), "on": PAPER},
 }
 TRICOLOUR = [THEMES["R2"]["slab"], THEMES["R3"]["slab"], THEMES["RB"]["slab"]]
 CURRENT = THEMES["R2"]  # active round theme; dividers switch it
 
 SLIDE_W = Inches(13.333)
 SLIDE_H = Inches(7.5)
+EDGE = 0.55                  # breathing room kept clear at the slide's edges
+RIGHT = 13.333 - EDGE       # right limit for photos and embedded media (in)
 FONT = "Segoe UI"            # installed by default on Windows — no embedding
 DISPLAY = "Segoe UI Black"   # heavy display weight, also a Windows system face
 
@@ -134,10 +140,20 @@ def text(slide, x, y, w, h, content, size=16, color=LIGHT, bold=False,
     return tb
 
 
-def icon_tile(slide, name, cx, cy, d):
-    """Icon on a sharp square tile, centred at (cx, cy) inches, side d."""
+def icon_tile(slide, name, cx, cy, d, accent=None):
+    """Icon on a sharp square tile, centred at (cx, cy) inches, side d.
+
+    The OpenMoji art needs a light tile to read, but a flat cream tile
+    clashes with the cool round colours — so the tile is a near-white
+    tinted toward the round (or a given) accent, with a hairline edge so
+    it stays defined on any background."""
+    accent = accent if accent is not None else CURRENT["bright"]
+    fill = mix(PAPER, accent, 0.16)
     cx, cy, d = Inches(cx), Inches(cy), Inches(d)
-    shape(slide, MSO_SHAPE.RECTANGLE, cx - d / 2, cy - d / 2, d, d, fill=TILE)
+    sp = shape(slide, MSO_SHAPE.RECTANGLE, cx - d / 2, cy - d / 2, d, d,
+               fill=fill)
+    sp.line.color.rgb = mix(fill, INK, 0.16)
+    sp.line.width = Pt(0.75)
     pic = Emu(int(d * 0.72))
     slide.shapes.add_picture(f"assets/{name}.png", cx - pic / 2, cy - pic / 2,
                              pic, pic)
@@ -190,9 +206,9 @@ def place_photo(slide, name, x0, y0, x1, y1, max_h=None, border=True,
     path = f"photos/{name}"
     src_w, src_h = Image.open(path).size
     aspect = src_w / src_h
-    # keep the accent border fully on the slide: inset the box from the
-    # slide edges by a hair so the outline is never clipped
-    x1 = min(x1, 13.29)
+    # keep a clear margin at the right edge so images don't crowd it, and
+    # keep the accent border off the top/bottom edges
+    x1 = min(x1, RIGHT)
     y0, y1 = max(y0, 0.04), min(y1, 7.46)
     bw, bh = x1 - x0, y1 - y0
     if bw / bh > aspect:
@@ -271,30 +287,74 @@ def make_poster(key, accent, label, sub=None, src=None, size=(1280, 720)):
     return path
 
 
-def media_box(slide, media_path, poster_path, mime, x, y, w, h):
-    """Inline media player (audio or video) framed in the round accent."""
+def _set_fullscreen(slide, shape_id):
+    """Tick PowerPoint's “Play Full Screen” for the embedded video whose
+    shape id is given (sets fullScrn on its media node in the timeline)."""
+    timing = slide.element.find(qn("p:timing"))
+    if timing is None:
+        return
+    for node in timing.iter(qn("p:cMediaNode")):
+        tgt = node.find(".//" + qn("p:spTgt"))
+        if tgt is not None and tgt.get("spid") == str(shape_id):
+            node.set("fullScrn", "1")
+
+
+def media_box(slide, media_path, poster_path, mime, x, y, w, h,
+              fullscreen=False):
+    """Inline media player (audio or video) framed in the round accent.
+    `fullscreen` ticks Play Full Screen so a video fills the screen on
+    click (use for video, not the music excerpts)."""
     pad = 0.06
     shape(slide, MSO_SHAPE.RECTANGLE, Inches(x - pad), Inches(y - pad),
           Inches(w + 2 * pad), Inches(h + 2 * pad), fill=CURRENT["bright"])
-    slide.shapes.add_movie(media_path, Inches(x), Inches(y), Inches(w),
-                           Inches(h), poster_frame_image=poster_path,
-                           mime_type=mime)
+    gf = slide.shapes.add_movie(media_path, Inches(x), Inches(y), Inches(w),
+                                Inches(h), poster_frame_image=poster_path,
+                                mime_type=mime)
+    if fullscreen:
+        _set_fullscreen(slide, gf.shape_id)
+    return gf
+
+
+def link_line(slide, x, y, w, label, url, color, size=11,
+              align=PP_ALIGN.RIGHT):
+    """A single clickable line of text (a real hyperlink)."""
+    tb = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w),
+                                  Inches(0.3))
+    tf = tb.text_frame
+    tf.word_wrap = False
+    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    p = tf.paragraphs[0]
+    p.alignment = align
+    r = p.add_run()
+    r.text = label
+    r.font.name = FONT
+    r.font.size = Pt(size)
+    r.font.color.rgb = color
+    r.hyperlink.address = url
+    return tb
 
 
 def place_movie_right(slide, movie, y=1.75):
-    """Embed a 16:9 video clip on the right of a content slide. Returns the
-    video's left edge x (inches) so question/answer text can size to it."""
+    """Embed a 16:9 video clip on the right of a content slide; video plays
+    full screen on click. A hyperlinked title sits below it as a YouTube
+    backup. Returns the video's left edge x (inches)."""
     vw = 5.95
     vh = vw * 9 / 16
-    vx = 12.86 - vw
+    vx = RIGHT - vw
     poster = make_poster(movie["key"], CURRENT["bright"],
                          movie.get("label", "PLAY THE CLIP"),
                          sub=movie.get("sub"), src=movie.get("poster_src"))
     media_box(slide, movie["file"], poster, movie.get("mime", "video/mp4"),
-              vx, y, vw, vh)
-    cap = "▶  Embedded clip — click to play in PowerPoint"
-    text(slide, Inches(vx), Inches(y + vh + 0.12), Inches(vw), Inches(0.3),
-         movie.get("caption", cap), size=10, color=FOG, align=PP_ALIGN.RIGHT)
+              vx, y, vw, vh, fullscreen=True)
+    cy = y + vh + 0.13
+    if movie.get("url"):
+        title = movie.get("title", "Watch on YouTube")
+        link_line(slide, vx, cy, vw, f"▶  Backup on YouTube — {title}",
+                  movie["url"], CURRENT["bright"], size=11)
+    else:
+        text(slide, Inches(vx), Inches(cy), Inches(vw), Inches(0.3),
+             "▶  Embedded — click to play full screen", size=10, color=FOG,
+             align=PP_ALIGN.RIGHT)
     return vx
 
 
@@ -343,7 +403,7 @@ def rules_slide():
         ("teams", "TEAMS", "R1",
          "Draw a slip at the door — the river or lake on it is your team."),
         ("target", "ROUNDS", "R2",
-         "Three rounds plus a bonus round. One point per question unless "
+         "Four rounds plus a bonus round. One point per question unless "
          "marked otherwise."),
         ("memo", "ANSWERS", "R3",
          "Write your answers down — we reveal and score after each round."),
@@ -357,7 +417,7 @@ def rules_slide():
               Inches(5.7), Inches(2.05), fill=PANEL)
         shape(s, MSO_SHAPE.RECTANGLE, Inches(gx), Inches(gy),
               Inches(0.07), Inches(2.05), fill=accent)
-        icon_tile(s, icon, gx + 1.0, gy + 1.02, 1.15)
+        icon_tile(s, icon, gx + 1.0, gy + 1.02, 1.15, accent=accent)
         text(s, Inches(gx + 1.85), Inches(gy + 0.38), Inches(3.65),
              Inches(0.42), head, size=17, bold=True, color=accent)
         text(s, Inches(gx + 1.85), Inches(gy + 0.85), Inches(3.65),
@@ -595,7 +655,8 @@ answer_slide(
     R1, 5, "A — The crate was improperly labelled", a_size=32,
     movie={"key": "dikko", "file": "media/video/umaru_dikko_kidnap.mp4",
            "poster_src": "photos/dikko_crate_stansted_1984.jpg",
-           "label": "PLAY THE STORY"},
+           "label": "PLAY THE STORY", "title": "The Umaru Dikko affair",
+           "url": "https://www.youtube.com/watch?v=N83Idy9IOmU"},
     fact="With no official diplomatic markings, customs officers at "
          "Stansted were entitled to open the crate — and found Dikko "
          "unconscious, accompanied by an anaesthetist.",
@@ -629,23 +690,24 @@ question_slide(
               "tried a different strategy: entering a song that simply "
               "declared victory before the contest was even over.\n\nWhat "
               "was the title of the song?",
+    photo="eurovision_logo_white.png", photo_h=1.35, photo_border=False,
     q_size=22,
-    movie={"key": "eurovision", "file": "media/video/"
-           "eurovision_we_are_the_winners.mp4",
-           "poster_src": "photos/eurovision_logo_white.png",
-           "label": "PLAY THE CLIP"},
-    notes="Embedded clip plays in PowerPoint (media/video/"
-          "eurovision_we_are_the_winners.mp4). Decide which part to show — "
-          "trim in PowerPoint (Playback ▸ Trim Video). Backup: "
-          "https://www.youtube.com/watch?v=DBAdOlQPbwg")
+    notes="Keep the question on the Eurovision logo only — the clip is on "
+          "the answer slide, so playing it here would give the answer away.")
 answer_slide(
     R2, 1, "“We Are The Winners”",
-    photo=["lt_united_eurovision_2006.jpg", "lena_valaitis_1981.jpg"],
-    credit="Photos: EBU / eurovision.tv",
-    fact="Honourable mention: Lithuanian-German singer Lena Valaitis took "
-         "second place at Eurovision 1981 — proof that we keep looking for "
-         "that victory by all possible means.",
-    notes="Mention Lena Valaitis as a fun fact, not a question.")
+    movie={"key": "eurovision", "file": "media/video/"
+           "eurovision_we_are_the_winners.mp4",
+           "poster_src": "photos/lt_united_eurovision_2006.jpg",
+           "label": "PLAY THE CLIP", "title": "LT United — We Are The Winners",
+           "url": "https://www.youtube.com/watch?v=DBAdOlQPbwg"},
+    fact="LT United, Eurovision 2006. Honourable mention: Lithuanian-German "
+         "singer Lena Valaitis took second place in 1981 — we keep looking "
+         "for that victory by all possible means.",
+    notes="Play the LT United clip here, on the answer. Decide which part to "
+          "show — trim in PowerPoint (Playback ▸ Trim Video). Mention Lena "
+          "Valaitis as a fun fact, not a question. Backup: "
+          "https://www.youtube.com/watch?v=DBAdOlQPbwg")
 
 question_slide(
     R2, 2, 8, "Two Lithuanian mountaineers carried a symbolic national "
@@ -733,7 +795,9 @@ question_slide(
               "approaching?",
     q_size=22,
     movie={"key": "spirgi", "file": "media/video/eu_accession_spirgi.mp4",
-           "poster_src": "photos/cepelinai.jpg", "label": "PLAY THE CLIP"},
+           "poster_src": "photos/cepelinai.jpg", "label": "PLAY THE CLIP",
+           "title": "Spirgi, spirgi — EU accession promo",
+           "url": "https://www.youtube.com/watch?v=YgvHcenDYcU"},
     notes="Embedded clip plays in PowerPoint (media/video/"
           "eu_accession_spirgi.mp4) — add English subtitles before the "
           "night. Consider whether to keep “early 2000s” in the wording. "
