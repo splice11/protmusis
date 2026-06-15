@@ -289,14 +289,15 @@ def make_poster(key, accent, label, sub=None, src=None, size=(1280, 720)):
 
 def _set_fullscreen(slide, shape_id):
     """Tick PowerPoint's “Play Full Screen” for the embedded video whose
-    shape id is given (sets fullScrn on its media node in the timeline)."""
+    shape id is given. The flag lives on the <p:video> timeline element
+    (CT_TLMediaNodeVideo/@fullScrn) — not on the inner cMediaNode."""
     timing = slide.element.find(qn("p:timing"))
     if timing is None:
         return
-    for node in timing.iter(qn("p:cMediaNode")):
-        tgt = node.find(".//" + qn("p:spTgt"))
+    for vid in timing.iter(qn("p:video")):
+        tgt = vid.find(".//" + qn("p:spTgt"))
         if tgt is not None and tgt.get("spid") == str(shape_id):
-            node.set("fullScrn", "1")
+            vid.set("fullScrn", "1")
 
 
 def media_box(slide, media_path, poster_path, mime, x, y, w, h,
@@ -518,13 +519,17 @@ def answer_slide(round_label, q_no, answer, icon=None, fact=None,
                                      border=photo_border)
             px = x
             credit_y = y + h + 0.07
+            credit_r = x + w
         else:
-            x1, _, _, _ = place_photo(s, names[0], 7.9, 0.15, 13.333, 3.70)
+            x1, _, w1, _ = place_photo(s, names[0], 7.9, 0.15, 13.333, 3.70)
             x2, y2, w2, h2 = place_photo(s, names[1], 7.9, 3.80, 13.333, 7.35)
             px = min(x1, x2)
             credit_y = min(y2 + h2 + 0.07, 7.18)
+            credit_r = max(x1 + w1, x2 + w2)
         if credit:
-            text(s, Inches(px), Inches(credit_y), Inches(13.333 - px - 0.2),
+            # right-align the credit flush under the photo's right edge — it
+            # used to run to the slide edge while the photo sat further left
+            text(s, Inches(px), Inches(credit_y), Inches(credit_r - px),
                  Inches(0.3), credit, size=8.5, color=FOG,
                  align=PP_ALIGN.RIGHT)
     elif icon:
