@@ -4,7 +4,7 @@
 The document mirrors the final order of Trivia_Night_2026-06-16.pptx —
 rounds, questions, options, answers, did-you-know facts and host notes —
 and closes with a summary of what changed relative to the original draft
-(`Klausimai protmūšiui.docx`).
+(`Klausimai protmūšiui (2).docx`).
 
 Usage:  pip install python-docx && python3 generate_rundown.py
 Output: Trivia_Night_2026-06-16_run_of_show.docx
@@ -82,7 +82,7 @@ para("Brussels · 16 June 2026 · Permanent Representation of Lithuania to "
      "the European Union · Environment Team", bold=True)
 para("This document follows the final slide deck "
      "(Trivia_Night_2026-06-16.pptx) in presentation order. It was built "
-     "from the question draft in “Klausimai protmūšiui.docx”; the changes "
+     "from the question draft in “Klausimai protmūšiui (2).docx”; the changes "
      "made relative to the draft are summarised at the end.", italic=True,
      color=MUTED)
 
@@ -155,7 +155,9 @@ question(
     options=[("A", "The crate was improperly labelled as diplomatic "
                    "baggage"),
              ("B", "Dikko did not fit inside the crate"),
-             ("C", "The aircraft meant to transport him never arrived")],
+             ("C", "The aircraft meant to transport him never arrived"),
+             ("D", "Customs officers had never heard of the Vienna "
+                   "Convention")],
     correct="A", answer="A — The crate was improperly labelled",
     fact="With no official diplomatic markings, customs officers at "
          "Stansted were entitled to open the crate — and found Dikko "
@@ -469,7 +471,7 @@ para("Thank you for playing — count the points and announce the winning "
 
 # ------------------------------------------------- changes vs. the draft --
 doc.add_page_break()
-doc.add_heading("Changes relative to “Klausimai protmūšiui.docx”", level=1)
+doc.add_heading("Changes relative to “Klausimai protmūšiui (2).docx”", level=1)
 
 para("Structure and format", bold=True)
 for line in [
