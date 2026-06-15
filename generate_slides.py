@@ -27,6 +27,7 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.oxml import parse_xml
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
 
@@ -382,17 +383,18 @@ make_timer_gif()
 
 def add_timer(slide):
     """Drop the shared one-minute countdown GIF at the top-centre of a
-    question slide. It animates automatically in slideshow mode."""
-    w = 2.15
+    question slide, just below the round/question header so it no longer sits
+    on the same line as that text. It animates automatically in slideshow
+    mode — so on the duplicated “timer” copy of a question it looks like the
+    countdown appears and starts the moment you click onto the slide."""
+    w = 1.85
     h = w * 210 / 660
     slide.shapes.add_picture(_TIMER_GIF, Inches((13.333 - w) / 2),
-                             Inches(0.12), Inches(w), Inches(h))
+                             Inches(0.95), Inches(w), Inches(h))
 
 
 def _set_fullscreen(slide, shape_id):
-    """Tick PowerPoint's “Play Full Screen” for the embedded video whose
-    shape id is given. The flag lives on the <p:video> timeline element
-    (CT_TLMediaNodeVideo/@fullScrn) — not on the inner cMediaNode."""
+    """Tick PowerPoint's “Play Full Screen” on the embedded <p:video>."""
     timing = slide.element.find(qn("p:timing"))
     if timing is None:
         return
@@ -402,20 +404,81 @@ def _set_fullscreen(slide, shape_id):
             vid.set("fullScrn", "1")
 
 
+def apply_media_timing(slide, shape_id, kind, loop=False, fullscreen=False):
+    """Replace the slide's media timing with PowerPoint's “Start: In Click
+    Sequence” structure, so the clip plays as the next click while advancing
+    the slide. `loop` adds “Loop until Stopped” (used for the music excerpts);
+    `fullscreen` ticks Play Full Screen (video). This mirrors the XML
+    PowerPoint itself writes for these options."""
+    media_el = "p:video" if kind == "video" else "p:audio"
+    repeat = ' repeat="indefinite"' if loop else ""
+    fullscr = ' fullScrn="1"' if (fullscreen and kind == "video") else ""
+    endcond = ('<p:endCondLst><p:cond evt="onStopAudio" delay="0">'
+               '<p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:endCondLst>'
+               if loop else "")
+    xml = (
+        '<p:timing xmlns:p="http://schemas.openxmlformats.org/'
+        'presentationml/2006/main">'
+        '<p:tnLst><p:par>'
+        '<p:cTn id="1" dur="indefinite" restart="never" nodeType="tmRoot">'
+        '<p:childTnLst>'
+        '<p:seq concurrent="1" nextAc="seek">'
+        '<p:cTn id="2" dur="indefinite" nodeType="mainSeq"><p:childTnLst>'
+        '<p:par><p:cTn id="3" fill="hold">'
+        '<p:stCondLst><p:cond delay="indefinite"/></p:stCondLst>'
+        '<p:childTnLst>'
+        '<p:par><p:cTn id="4" fill="hold">'
+        '<p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>'
+        '<p:par><p:cTn id="5" presetID="1" presetClass="mediaCall" '
+        'presetSubtype="0" fill="hold" nodeType="clickEffect">'
+        '<p:stCondLst><p:cond delay="0"/></p:stCondLst><p:childTnLst>'
+        '<p:cmd type="call" cmd="playFrom(0.0)"><p:cBhvr>'
+        '<p:cTn id="6" dur="indefinite"/>'
+        f'<p:tgtEl><p:spTgt spid="{shape_id}"/></p:tgtEl>'
+        '</p:cBhvr></p:cmd>'
+        '</p:childTnLst></p:cTn></p:par>'
+        '</p:childTnLst></p:cTn></p:par>'
+        '</p:childTnLst></p:cTn></p:par>'
+        '</p:childTnLst></p:cTn>'
+        '<p:prevCondLst><p:cond evt="onPrev" delay="0">'
+        '<p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:prevCondLst>'
+        '<p:nextCondLst><p:cond evt="onNext" delay="0">'
+        '<p:tgtEl><p:sldTgt/></p:tgtEl></p:cond></p:nextCondLst>'
+        '</p:seq>'
+        f'<{media_el}{fullscr}><p:cMediaNode vol="80000"{repeat}>'
+        '<p:cTn id="7" fill="hold" display="0">'
+        '<p:stCondLst><p:cond delay="indefinite"/></p:stCondLst>'
+        f'{endcond}</p:cTn>'
+        f'<p:tgtEl><p:spTgt spid="{shape_id}"/></p:tgtEl>'
+        f'</p:cMediaNode></{media_el}>'
+        '</p:childTnLst></p:cTn></p:par></p:tnLst></p:timing>')
+    old = slide.element.find(qn("p:timing"))
+    new = parse_xml(xml)
+    if old is not None:
+        old.getparent().replace(old, new)
+    else:
+        slide.element.append(new)
+
+
 def media_box(slide, media_path, poster_path, mime, x, y, w, h,
-              fullscreen=False):
+              fullscreen=False, loop=False, click_sequence=True):
     """Inline media player (audio or video) framed in the round accent.
-    `fullscreen` ticks Play Full Screen so a video fills the screen on
-    click (use for video, not the music excerpts). Music excerpts remain
-    click-to-play, matching PowerPoint defaults and avoiding custom timing
-    XML that can trigger repair prompts."""
+    With `click_sequence` (the default) the clip is set to Start: In Click
+    Sequence; `loop` adds Loop until Stopped (audio) and `fullscreen` ticks
+    Play Full Screen (video). With `click_sequence=False` the clip keeps
+    PowerPoint's default play-on-click behaviour (used on the music “read”
+    slide so a click simply advances to its timer copy)."""
     pad = 0.06
     shape(slide, MSO_SHAPE.RECTANGLE, Inches(x - pad), Inches(y - pad),
           Inches(w + 2 * pad), Inches(h + 2 * pad), fill=CURRENT["bright"])
     gf = slide.shapes.add_movie(media_path, Inches(x), Inches(y), Inches(w),
                                 Inches(h), poster_frame_image=poster_path,
                                 mime_type=mime)
-    if fullscreen:
+    kind = "audio" if mime.startswith("audio") else "video"
+    if click_sequence:
+        apply_media_timing(slide, gf.shape_id, kind, loop=loop,
+                           fullscreen=fullscreen)
+    elif fullscreen:
         _set_fullscreen(slide, gf.shape_id)
     return gf
 
@@ -548,19 +611,20 @@ def divider(theme, round_no, title, sub, icons, num, notes=None, size=54):
         x += 1.1 + 0.4
 
 
-def question_slide(round_label, q_no, q_total, question, icon=None,
-                   options=None, hint=None, movie=None, notes=None,
-                   points="1 point", q_size=26, photo=None, photo_h=None,
-                   photo_border=True):
+def _build_question(timer, round_label, q_no, q_total, question, icon=None,
+                    options=None, hint=None, movie=None, notes=None,
+                    points="1 point", q_size=26, photo=None, photo_h=None,
+                    photo_border=True):
     s = add_slide(notes=notes)
     edge_bar(s)
     q_header(s, round_label, q_no, q_total, points)
-    add_timer(s)
+    if timer:
+        add_timer(s)
     bright = CURRENT["bright"]
     dim = mix(bright, BG, 0.8)
     if options:
         giant(s, str(q_no), dim, 10.6, 0.45, 2.33, 2.1, size=140)
-        text(s, Inches(0.7), Inches(1.25), Inches(9.7), Inches(2.4),
+        text(s, Inches(0.7), Inches(1.62), Inches(9.7), Inches(1.95),
              question, size=q_size, bold=True, color=PAPER, spacing=1.12)
         full_row = any(len(o[1]) > 38 for o in options)
         if full_row:
@@ -601,7 +665,7 @@ def question_slide(round_label, q_no, q_total, question, icon=None,
             giant(s, str(q_no), dim, 10.6, 0.45, 2.33, 1.9, size=120)
             icon_tile(s, icon, 10.85, 4.1, 2.7)
             qw, px = 7.9, 9.0
-        text(s, Inches(0.7), Inches(1.55), Inches(qw), Inches(4.4),
+        text(s, Inches(0.7), Inches(1.62), Inches(qw), Inches(4.3),
              question, size=q_size, bold=True, color=PAPER, spacing=1.15)
     if hint:
         text(s, Inches(0.7), Inches(6.45), Inches(11.9), Inches(0.4),
@@ -609,28 +673,50 @@ def question_slide(round_label, q_no, q_total, question, icon=None,
                (hint, {"size": 14, "color": FOG, "italic": True})]])
 
 
-def answer_slide(round_label, q_no, answer, icon=None, fact=None,
-                 movie=None, notes=None, a_size=38, photo=None, credit=None,
-                 photo_h=None, photo_border=True):
+def _build_answer(round_label, q_no, answer, icon=None, fact=None,
+                  movie=None, notes=None, a_size=38, photo=None, credit=None,
+                  photo_h=None, photo_border=True):
     s = add_slide(notes=notes)
     edge_bar(s)
     kicker(s, round_label, f"ANSWER · QUESTION {q_no}")
     px = 12.63
-    if movie:
+    if movie and photo:
+        # photo (e.g. the enlargement map) on top-right, the revealing video
+        # stacked below it — both shown with the answer
+        name = photo[0] if isinstance(photo, list) else photo
+        x, y, w, h = place_photo(s, name, 7.95, 0.95, 13.05, 3.5,
+                                 border=photo_border)
+        vw = 4.85
+        vh = vw * 9 / 16
+        vx = 12.93 - vw
+        vy = 3.95
+        poster = make_poster(movie["key"], CURRENT["bright"],
+                             movie.get("label", "PLAY THE CLIP"),
+                             sub=movie.get("sub"), src=movie.get("poster_src"))
+        media_box(s, movie["file"], poster, movie.get("mime", "video/mp4"),
+                  vx, vy, vw, vh, fullscreen=True)
+        if movie.get("url"):
+            link_line(s, vx, vy + vh + 0.12, vw,
+                      f"▶  Backup on YouTube — {movie.get('title', 'YouTube')}",
+                      movie["url"], CURRENT["bright"], size=10.5)
+        px = min(x, vx)
+        if credit:
+            text(s, Inches(x), Inches(y + h + 0.05), Inches(w), Inches(0.25),
+                 credit, size=8.5, color=FOG, align=PP_ALIGN.RIGHT)
+    elif movie:
         px = place_movie_right(s, movie, y=1.7)
     elif photo:
         names = photo if isinstance(photo, list) else [photo]
         if len(names) == 1:
             bot = 7.02 if credit else 7.5
-            x, y, w, h = place_photo(s, names[0], 7.7, 0.2 if credit else 0.0,
-                                     13.333, bot, max_h=photo_h,
-                                     border=photo_border)
+            x, y, w, h = place_photo(s, names[0], 7.7, 0.95, 13.333, bot,
+                                     max_h=photo_h, border=photo_border)
             px = x
             credit_y = y + h + 0.07
             credit_r = x + w
         else:
-            x1, _, w1, _ = place_photo(s, names[0], 7.9, 0.15, 13.333, 3.70)
-            x2, y2, w2, h2 = place_photo(s, names[1], 7.9, 3.80, 13.333, 7.35)
+            x1, _, w1, _ = place_photo(s, names[0], 7.9, 0.95, 13.333, 3.85)
+            x2, y2, w2, h2 = place_photo(s, names[1], 7.9, 3.95, 13.333, 7.35)
             px = min(x1, x2)
             credit_y = min(y2 + h2 + 0.07, 7.18)
             credit_r = max(x1 + w1, x2 + w2)
@@ -650,15 +736,17 @@ def answer_slide(round_label, q_no, answer, icon=None, fact=None,
         fact_panel(s, fact, 0.7, 3.65, text_w, 2.95)
 
 
-def music_question_slide(round_label, q_no, q_total, question, audio,
-                         notes=None, q_size=24):
+def _build_music_question(timer, round_label, q_no, q_total, question, audio,
+                          notes=None, q_size=24):
     """A music-round riddle: the question is shown prominently on the left
-    while a small song excerpt is available in the corner as the clue.
-    The riddle answer is revealed on the next slide."""
+    while a small song excerpt sits in the corner as the clue. On the timer
+    copy the excerpt is set to play in the click sequence and loop until
+    stopped; on the read copy it stays plain click-to-play."""
     s = add_slide(notes=notes)
     edge_bar(s)
     q_header(s, round_label, q_no, q_total)
-    add_timer(s)
+    if timer:
+        add_timer(s)
     # small playable clip tucked to the right as the clue
     vw = 3.3
     vh = vw * 9 / 16
@@ -666,13 +754,61 @@ def music_question_slide(round_label, q_no, q_total, question, audio,
     vy = 2.45
     poster = make_poster(f"track{q_no}", CURRENT["bright"], f"TRACK {q_no}",
                          size=(640, 360))
-    media_box(s, audio, poster, "audio/mpeg", vx, vy, vw, vh)
+    media_box(s, audio, poster, "audio/mpeg", vx, vy, vw, vh,
+              loop=timer, click_sequence=timer)
     text(s, Inches(vx), Inches(vy + vh + 0.14), Inches(vw), Inches(0.4),
          [[("♪  Listen for the clue",
             {"italic": True})]], size=10.5, color=FOG, align=PP_ALIGN.CENTER)
     qw = vx - 0.7 - 0.45
-    text(s, Inches(0.7), Inches(1.55), Inches(qw), Inches(4.7),
+    text(s, Inches(0.7), Inches(1.62), Inches(qw), Inches(4.6),
          question, size=q_size, bold=True, color=PAPER, spacing=1.15)
+
+
+# --- round buffering: emit all of a round's questions, then all answers -----
+# The deck is authored question-by-question below, but each round is shown as
+# all questions first, then all answers. Calls are buffered and flushed per
+# round. Every question is emitted twice — a plain “read” copy and an
+# identical “timer” copy whose countdown starts as you click onto it.
+_PENDING_Q = []
+_PENDING_A = []
+
+
+def question_slide(*args, **kwargs):
+    _PENDING_Q.append(("q", args, kwargs))
+
+
+def music_question_slide(*args, **kwargs):
+    _PENDING_Q.append(("m", args, kwargs))
+
+
+def answer_slide(*args, **kwargs):
+    _PENDING_A.append((args, kwargs))
+
+
+def answers_divider(round_head):
+    """Section marker shown between a round's questions and its answers."""
+    s = add_slide()
+    edge_bar(s)
+    text(s, Inches(0.9), Inches(2.55), Inches(11.53), Inches(0.5), round_head,
+         size=20, bold=True, color=CURRENT["bright"], align=PP_ALIGN.CENTER)
+    text(s, Inches(0.9), Inches(3.1), Inches(11.53), Inches(1.5), "ANSWERS",
+         size=84, color=PAPER, font=DISPLAY, align=PP_ALIGN.CENTER)
+    tricolour_bars(s, 5.15)
+
+
+def flush_round():
+    """Emit the buffered round: every question (read copy + timer copy), an
+    ANSWERS divider, then every answer — in question order."""
+    for kind, args, kwargs in _PENDING_Q:
+        build = _build_music_question if kind == "m" else _build_question
+        build(False, *args, **kwargs)   # read copy — no timer
+        build(True, *args, **kwargs)    # timer copy — countdown runs
+    if _PENDING_A:
+        answers_divider(_PENDING_A[0][0][0].split(" · ")[0])
+        for args, kwargs in _PENDING_A:
+            _build_answer(*args, **kwargs)
+    _PENDING_Q.clear()
+    _PENDING_A.clear()
 
 
 def closing_slide():
@@ -821,6 +957,8 @@ answer_slide(
          "spacecraft — providing propulsion, electricity, and the air, "
          "water and temperature control that keep the crew alive.")
 
+flush_round()
+
 # ===== ROUND 2 ==============================================================
 R2 = "ROUND 2 · LITHUANIA"
 divider("R2", "ROUND 2", "Lithuania", "8 questions · 1 point each",
@@ -935,21 +1073,22 @@ question_slide(
               "Europe as street food.\n\nThe video reflects a moment when "
               "Lithuania was preparing for a major change. What event was "
               "approaching?",
-    q_size=22,
+    photo="cepelinai.jpg", q_size=22,
+    notes="Keep just the cepelinai photo on the question — the promo video "
+          "gives the answer away, so it is shown with the answer instead.")
+answer_slide(
+    R2, 7, "Joining the European Union", a_size=34,
+    photo="eu_enlargement_2004_map.png", credit="Map: Wikimedia Commons",
     movie={"key": "spirgi", "file": "media/video/eu_accession_spirgi.mp4",
            "poster_src": "photos/cepelinai.jpg", "label": "PLAY THE CLIP",
            "title": "Spirgi, spirgi — EU accession promo",
            "url": "https://www.youtube.com/watch?v=YgvHcenDYcU"},
-    notes="Embedded clip plays in PowerPoint (media/video/"
-          "eu_accession_spirgi.mp4) — add English subtitles before the "
-          "night. Consider whether to keep “early 2000s” in the wording. "
-          "Backup: https://www.youtube.com/watch?v=YgvHcenDYcU")
-answer_slide(
-    R2, 7, "Joining the European Union", a_size=34,
-    photo="eu_enlargement_2004_map.png", credit="Map: Wikimedia Commons",
     fact="Lithuania joined the EU on 1 May 2004, in the largest enlargement "
          "in the Union's history — ten countries at once. The cepelinai "
-         "street-food revolution is still pending.")
+         "street-food revolution is still pending.",
+    notes="Reveal the promo video here, with the answer (add English "
+          "subtitles before the night). Backup: "
+          "https://www.youtube.com/watch?v=YgvHcenDYcU")
 
 question_slide(
     R2, 8, 8, "A few weeks ago a beloved Vilnius festival was held for the "
@@ -965,6 +1104,8 @@ answer_slide(
     fact="Šaltibarščiai — the electric-pink cold beet soup — is Lithuania's "
          "unofficial summer flag. The Vilnius “Pink Soup Fest” has become a "
          "hit: last year more than 90,000 fans turned the city pink.")
+
+flush_round()
 
 # ===== ROUND 3 ==============================================================
 R3 = "ROUND 3 · ENVIRONMENT & NATURE"
@@ -1049,6 +1190,8 @@ answer_slide(
          "Germany's Black Forest to the Black Sea, flowing through or "
          "bordering 10 countries — more than any other river in Europe.")
 
+flush_round()
+
 # ===== ROUND 4 — MUSIC ======================================================
 RM = "ROUND 4 · MUSIC"
 divider("RM", "ROUND 4", "Name the Connection",
@@ -1125,6 +1268,8 @@ answer_slide(
          "living, the dead, and those at sea — and the thread through every "
          "answer tonight: the sea, and the EU's upcoming Ocean Pact.")
 
+flush_round()
+
 # ===== BONUS ROUND ==========================================================
 RB = "BONUS · THE BRUSSELS BUBBLE"
 divider("RB", "BONUS ROUND", "The Brussels Bubble",
@@ -1184,6 +1329,8 @@ answer_slide(
          "European press — a loud reminder that the Baltic states had not "
          "been forgotten.")
 
+flush_round()
+
 # ===== TIE-BREAKER ==========================================================
 TB = "TIE-BREAKER"
 divider("R1", "TIE-BREAKER", "If We Need It",
@@ -1204,6 +1351,8 @@ answer_slide(
     fact="As the Grande Armée marched east in 1812, Napoleon is said to "
          "have wished he could carry St Anne's Church back to Paris in his "
          "palm. A hill near Kaunas is still known as “Napoleon's hat”.")
+
+flush_round()
 
 closing_slide()
 
