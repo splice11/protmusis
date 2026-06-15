@@ -56,16 +56,19 @@ English for an international audience. Production notes from the draft
 ## Embedded audio & video
 
 All clips are **embedded in the .pptx and play inline** in PowerPoint
-(offline — no YouTube link to open). Each sits behind an on-brand poster
-frame; click the play button to start. The original YouTube URLs are kept
-in the speaker notes as a backup.
+(offline). Each sits behind an on-brand poster frame; click the play
+button to start. **Videos are set to play full screen.** A **hyperlinked
+title sits under each video** (and the URL is in the speaker notes) so you
+can fall back to YouTube if a clip won't play on the night.
 
 - **Music round** — five excerpts in `media/audio/` (How Far I'll Go,
   My Heart Will Go On, Jūra, Yellow Submarine, Ocean Eyes), revealed with
   album art on the answer slides.
-- Round 2 Q1 — LT United, *We Are The Winners*
-  (`media/video/eurovision_we_are_the_winners.mp4`) — trim to the part you
-  want in PowerPoint (Playback ▸ Trim Video).
+- Round 2 Q1 **answer** — LT United, *We Are The Winners*
+  (`media/video/eurovision_we_are_the_winners.mp4`). The clip lives on the
+  **answer** slide so it doesn't give the title away; the **question** keeps
+  just the Eurovision logo. Trim to the part you want in PowerPoint
+  (Playback ▸ Trim Video).
 - Round 2 Q7 — EU-accession promo
   (`media/video/eu_accession_spirgi.mp4`) — add English subtitles before
   the night.

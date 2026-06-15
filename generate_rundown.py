@@ -180,8 +180,10 @@ question(
          "second place at Eurovision 1981 — proof that we keep looking "
          "for that victory by all possible means.",
     video="https://www.youtube.com/watch?v=DBAdOlQPbwg",
-    notes="Decide which part of the clip to show. Mention Lena Valaitis "
-          "as a fun fact, not a question.")
+    notes="The clip plays on the answer slide (the question keeps just the "
+          "Eurovision logo, so it isn't a give-away). Decide which part of "
+          "the clip to show. Mention Lena Valaitis as a fun fact, not a "
+          "question.")
 
 question(
     2, 8, "Two Lithuanian mountaineers carried a symbolic national object "
