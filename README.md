@@ -45,13 +45,17 @@ English for an international audience. Production notes from the draft
 ## Deck structure
 
 1. **Title + rules** — team draw at the door (slips with Lithuanian rivers/lakes)
-2. **Round 1 — Europe & Fun Facts** · 6 multiple-choice questions
+2. **Round 1 — Europe & Fun Facts** · 8 multiple-choice questions
 3. **Round 2 — Lithuania** · 8 questions
-4. **Round 3 — Environment & Nature** · 4 questions
-5. **Round 4 — Music (Name That Tune)** · 5 song excerpts — all secretly
-   about the sea (a nod to Čiurlionis's *Jūra*)
+4. **Round 3 — Environment & Nature** · 6 questions
+5. **Round 4 — Music (Name the Connection)** · 5 riddles whose answers are
+   all about the sea — a nod to the EU's upcoming Ocean Pact (and to
+   Čiurlionis's *Jūra*); the matching song excerpt plays automatically and
+   loops on each slide as the clue
 6. **Bonus — The Brussels Bubble** · 3 insider questions (1–2 points)
-7. **Closing / scoring**
+7. **Tie-breaker** · one question (Napoleon / St Anne's Church), used only
+   if teams finish level
+8. **Closing / scoring**
 
 ## Embedded audio & video
 
@@ -61,9 +65,10 @@ button to start. **Videos are set to play full screen.** A **hyperlinked
 title sits under each video** (and the URL is in the speaker notes) so you
 can fall back to YouTube if a clip won't play on the night.
 
-- **Music round** — five excerpts in `media/audio/` (How Far I'll Go,
-  My Heart Will Go On, Jūra, Yellow Submarine, Ocean Eyes), revealed with
-  album art on the answer slides.
+- **Music round** — five excerpts in `media/audio/` (Yellow Submarine,
+  Ocean Eyes, How Far I'll Go, My Heart Will Go On, Jūra). Each plays a
+  riddle while its clip **auto-plays and loops** from a small player in the
+  corner; the song and its album art are revealed on the answer slide.
 - Round 2 Q1 **answer** — LT United, *We Are The Winners*
   (`media/video/eurovision_we_are_the_winners.mp4`). The clip lives on the
   **answer** slide so it doesn't give the title away; the **question** keeps
@@ -85,8 +90,8 @@ can fall back to YouTube if a clip won't play on the night.
 - The Schumann Show / the institutions ([video](https://www.youtube.com/watch?v=D0fBh-0Eiy0))
 - One question per member state / quick-fire round idea
 - Questions voiced by the Minister and Selemonas Paltanavičius (incl. the Belém fire)
-- Napoleon / St Anne's church; Vytis; the Pacai–Pazzi family link; Bona Sforza
+- Vytis; the Pacai–Pazzi family link; Bona Sforza
 - German street in Vilnius
-- Kaunas modernism / Vilnius baroque; football (France / World Cup angle)
+- Kaunas modernism / Vilnius baroque
 - Adamkus 100 / Attenborough 100; the bears offered by Slovenia
 - Baltic Way symbols in the European Parliament
