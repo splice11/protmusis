@@ -87,8 +87,41 @@ def _vertical_center_cell(cell):
     cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
 
+def _set_row_border(row, edge, sz=12, val="dashed", color="888888"):
+    """Apply a single visible border to every cell on one edge of a row."""
+    for cell in row.cells:
+        tc_pr = cell._tc.get_or_add_tcPr()
+        borders = tc_pr.find(qn("w:tcBorders"))
+        if borders is None:
+            borders = OxmlElement("w:tcBorders")
+            tc_pr.append(borders)
+        el = borders.find(qn(f"w:{edge}"))
+        if el is None:
+            el = OxmlElement(f"w:{edge}")
+            borders.append(el)
+        el.set(qn("w:val"), val)
+        el.set(qn("w:sz"), str(sz))
+        el.set(qn("w:space"), "0")
+        el.set(qn("w:color"), color)
+
+
+def _set_row_exact_height(row, height):
+    row.height = height
+    tr = row._tr
+    trPr = tr.get_or_add_trPr()
+    trHeight = OxmlElement("w:trHeight")
+    trHeight.set(qn("w:val"), str(int(height)))
+    trHeight.set(qn("w:hRule"), "exact")
+    trPr.append(trHeight)
+
+
 def build_table_signs(path):
-    """A4 landscape, one centred team name per page (10 pages)."""
+    """A4 landscape table tents, one team per page (10 pages).
+
+    Each page is split in half by a horizontal fold line. The team name sits
+    in the *bottom* half only; the top half is blank. Fold along the dashed
+    line into an A-frame and the name shows upright on one face.
+    """
     doc = Document()
     section = doc.sections[0]
     section.orientation = WD_ORIENT.LANDSCAPE
@@ -97,19 +130,35 @@ def build_table_signs(path):
     for m in ("top_margin", "bottom_margin", "left_margin", "right_margin"):
         setattr(section, m, Cm(1.0))
 
-    # Vertical centring on a page is achieved by vertically centring the
-    # section's text. python-docx exposes this via the sectPr <w:vAlign>.
-    sect_pr = section._sectPr
-    vAlign = sect_pr.find(qn("w:vAlign"))
-    if vAlign is None:
-        vAlign = OxmlElement("w:vAlign")
-        sect_pr.append(vAlign)
-    vAlign.set(qn("w:val"), "center")
+    # Usable area: 29.7 - 2 = 27.7 cm wide, 21 - 2 = 19 cm tall. Keep the two
+    # halves just under half each so rounding never spills a blank page.
+    half_height = Cm(9.3)
+    full_width = Cm(27.5)
 
     for idx, team in enumerate(TEAMS):
-        p = doc.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = p.add_run(team)
+        # Two-row, single-column table filling the page: blank top half, then
+        # the name centred in the bottom half. A dashed border between the
+        # rows marks the fold line.
+        table = doc.add_table(rows=2, cols=1)
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        table.autofit = False
+
+        top, bottom = table.rows[0], table.rows[1]
+        _set_row_exact_height(top, half_height)
+        _set_row_exact_height(bottom, half_height)
+
+        for row in (top, bottom):
+            row.cells[0].width = full_width
+
+        # Fold line across the middle of the page.
+        _set_row_border(top, "bottom")
+
+        cell = bottom.cells[0]
+        cell.width = full_width
+        _vertical_center_cell(cell)
+        cell_p = cell.paragraphs[0]
+        cell_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = cell_p.add_run(team)
         run.bold = True
         run.font.size = Pt(SIGN_FONT_SIZES[team])
         run.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
@@ -140,10 +189,13 @@ def build_draw_slips(path):
             slips.append(team)
     # slips now has 50 entries, exactly 5 of each team.
 
-    COLS = 2
-    ROWS_PER_PAGE = 5
-    PER_PAGE = COLS * ROWS_PER_PAGE  # 10
-    ROW_HEIGHT = Cm(5.2)
+    # Small, uniform slips: a dense grid of equal cells. 5 columns x 10 rows
+    # fits all 50 slips (5 of each of the 10 teams) on a single A4 page.
+    COLS = 5
+    ROWS_PER_PAGE = 10
+    PER_PAGE = COLS * ROWS_PER_PAGE  # 50
+    ROW_HEIGHT = Cm(2.5)
+    CELL_WIDTH = Cm(3.6)
 
     total_pages = (len(slips) + PER_PAGE - 1) // PER_PAGE
 
@@ -156,25 +208,19 @@ def build_draw_slips(path):
         table.autofit = False
 
         for r in range(rows):
-            table.rows[r].height = ROW_HEIGHT
-            tr = table.rows[r]._tr
-            trPr = tr.get_or_add_trPr()
-            trHeight = OxmlElement("w:trHeight")
-            trHeight.set(qn("w:val"), str(int(ROW_HEIGHT)))
-            trHeight.set(qn("w:hRule"), "exact")
-            trPr.append(trHeight)
+            _set_row_exact_height(table.rows[r], ROW_HEIGHT)
 
         for i, team in enumerate(page_slips):
             r, c = divmod(i, COLS)
             cell = table.cell(r, c)
-            cell.width = Cm(9.0)
+            cell.width = CELL_WIDTH
             _set_cell_borders(cell)
             _vertical_center_cell(cell)
             cell_p = cell.paragraphs[0]
             cell_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = cell_p.add_run(team)
             run.bold = True
-            run.font.size = Pt(32)
+            run.font.size = Pt(16)
             run.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
             _set_run_font(run)
 
