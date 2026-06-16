@@ -79,9 +79,13 @@ can fall back to YouTube if a clip won't play on the night.
   **answer** slide so it doesn't give the title away; the **question** keeps
   just the Eurovision logo. Trim to the part you want in PowerPoint
   (Playback ▸ Trim Video).
-- Round 2 Q7 — EU-accession promo
-  (`media/video/eu_accession_spirgi.mp4`) — add English subtitles before
-  the night.
+- Round 2 Q7 — EU-accession promo. The **question** slide plays a short
+  clip cut to 26 seconds
+  (`media/video/eu_accession_spirgi_clip.mp4`) — it stops at the line about
+  membership opening new markets, before the EU is named, so it doesn't give
+  the answer away. The **answer** slide reveals the full promo
+  (`media/video/eu_accession_spirgi.mp4`). Add English subtitles before the
+  night.
 - Round 1 Q5 answer — the Umaru Dikko story
   (`media/video/umaru_dikko_kidnap.mp4`).
 

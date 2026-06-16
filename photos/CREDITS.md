@@ -69,3 +69,12 @@ Uploaded for the questions added in the latest draft. Converted to JPEG
 | `what_is_a_river.jpg` | Generic river image used on the Danube question slide | R3 Q6 | User-provided image; generated artifact also embeds a renamed copy as `generic_river.jpg` |
 | `napoleon_in_his_study.jpg` | *The Emperor Napoleon in His Study at the Tuileries* | Tie-breaker A | Jacques-Louis David, 1812 — public domain (Google Art Project, via Wikimedia Commons) |
 | `song_jura_happyendless.jpg` | *Jūra* — a painting from Čiurlionis's Sonata of the Sea, shown as the Music round's sea clue | R4 A5 | M. K. Čiurlionis, 1908 — public domain |
+
+## Fourth batch (June 2026 upload — feedback fixes)
+
+Added in response to reviewer feedback. Converted from WebP to JPEG with a
+snake_case name.
+
+| File | Shows | Slide | Source / attribution |
+|---|---|---|---|
+| `egyptian_mummy.jpg` | An Egyptian (Ptolemaic) mummy on museum display — added beside the Radvila portrait on the answer | R2 A6 | Museum-display photograph (Ptolemaic mummy collection); source untraced — **to confirm** |
