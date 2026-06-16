@@ -383,14 +383,17 @@ make_timer_gif()
 
 def add_timer(slide):
     """Drop the shared one-minute countdown GIF at the top-centre of a
-    question slide, just below the round/question header so it no longer sits
-    on the same line as that text. It animates automatically in slideshow
-    mode — so on the duplicated “timer” copy of a question it looks like the
-    countdown appears and starts the moment you click onto the slide."""
-    w = 1.85
+    question slide, vertically centred on the round/question header band so it
+    sits on the same line as the ROUND/Q chips. It animates automatically in
+    slideshow mode — so on the duplicated “timer” copy of a question it looks
+    like the countdown appears and starts the moment you click onto the
+    slide."""
+    w = 2.1
     h = w * 210 / 660
+    # q_header chips sit at y=0.42, height 0.58 — centre the timer on that band
+    y = 0.42 + (0.58 - h) / 2
     slide.shapes.add_picture(_TIMER_GIF, Inches((13.333 - w) / 2),
-                             Inches(0.95), Inches(w), Inches(h))
+                             Inches(y), Inches(w), Inches(h))
 
 
 def _set_fullscreen(slide, shape_id):
@@ -984,12 +987,10 @@ answer_slide(
          "white.")
 
 question_slide(
-    R1, 6, 8, "In 1984, former Nigerian minister Umaru Dikko was kidnapped "
-              "in London. His captors planned to smuggle him out of the UK "
-              "in a diplomatic crate, relying on the Vienna Convention rule "
-              "that diplomatic bags cannot be opened or detained.\n\nWhat "
-              "went wrong?",
-    "crate", q_size=21,
+    R1, 6, 8, "In 1984, kidnappers tried to smuggle Nigerian ex-minister "
+              "Umaru Dikko out of London in a diplomatic crate — which, under "
+              "the Vienna Convention, cannot be opened.\n\nWhat went wrong?",
+    "crate", q_size=20,
     options=[("A", "The crate was improperly labelled as diplomatic "
                    "baggage"),
              ("B", "Dikko did not fit inside the crate"),
@@ -1143,8 +1144,8 @@ question_slide(
     photo="aswan_egypt_nile.jpg", q_size=24)
 answer_slide(
     R2, 6, "Egyptian mummies",
-    photo="radvila_the_orphan.jpg",
-    credit="Anonymous portrait, c. 1590 (public domain)",
+    photo=["radvila_the_orphan.jpg", "egyptian_mummy.jpg"],
+    credit="Portrait c. 1590 (public domain) · mummy: museum display",
     fact="Mikalojus Kristupas Radvila the Orphan brought two mummies back "
          "from his pilgrimage. When storms battered the ship, the crew "
          "blamed the cargo — and overboard they went. His travel diary "
@@ -1157,9 +1158,16 @@ question_slide(
               "Europe as street food.\n\nThe video reflects a moment when "
               "Lithuania was preparing for a major change. What event was "
               "approaching?",
-    photo="cepelinai.jpg", q_size=22,
-    notes="Keep just the cepelinai photo on the question — the promo video "
-          "gives the answer away, so it is shown with the answer instead.")
+    q_size=22,
+    movie={"key": "spirgi_clip",
+           "file": "media/video/eu_accession_spirgi_clip.mp4",
+           "poster_src": "photos/cepelinai.jpg", "label": "PLAY THE CLIP",
+           "title": "Spirgi, spirgi — EU accession promo",
+           "url": "https://www.youtube.com/watch?v=YgvHcenDYcU"},
+    notes="Play the short clip here (cut to 26s) — it stops at the line about "
+          "membership opening new markets for Lithuania's products, just "
+          "before the EU is named, so the answer isn't given away. The full "
+          "promo plays on the answer slide.")
 answer_slide(
     R2, 7, "Joining the European Union", a_size=34,
     photo="eu_enlargement_2004_map.png", credit="Map: Wikimedia Commons",
@@ -1223,8 +1231,9 @@ answer_slide(
     credit="Collage: The New York Times",
     fact="Goodall (chimpanzees), Fossey (gorillas) and Galdikas "
          "(orangutans) were recruited by Louis Leakey — hence also "
-         "“Leakey's Angels”. Galdikas, of Lithuanian descent, still works "
-         "in Borneo. “Orangutan” means “person of the forest”.")
+         "“Leakey's Angels”. Galdikas, of Lithuanian descent, devoted her "
+         "life to the orangutans of Borneo and died in 2026. “Orangutan” "
+         "means “person of the forest”.")
 
 question_slide(
     R3, 3, 6, "Which EU law unexpectedly entered the headlines after the "

@@ -148,10 +148,9 @@ question(
          "white.")
 
 question(
-    6, 8, "In 1984, former Nigerian minister Umaru Dikko was kidnapped in "
-          "London. His captors planned to smuggle him out of the UK in a "
-          "diplomatic crate, relying on the Vienna Convention rule that "
-          "diplomatic bags cannot be opened or detained. What went wrong?",
+    6, 8, "In 1984, kidnappers tried to smuggle Nigerian ex-minister Umaru "
+          "Dikko out of London in a diplomatic crate — which, under the "
+          "Vienna Convention, cannot be opened. What went wrong?",
     options=[("A", "The crate was improperly labelled as diplomatic "
                    "baggage"),
              ("B", "Dikko did not fit inside the crate"),
@@ -276,8 +275,9 @@ question(
          "enlargement in the Union's history — ten countries at once. The "
          "cepelinai street-food revolution is still pending.",
     video="https://www.youtube.com/watch?v=YgvHcenDYcU",
-    notes="Add English subtitles to the clip. Consider whether to keep "
-          "“early 2000s” in the wording.")
+    notes="Question slide plays a short clip cut to 26s (stops at the line "
+          "about membership opening new markets, before the EU is named); "
+          "the full promo plays on the answer slide. Add English subtitles.")
 
 question(
     8, 8, "A few weeks ago a beloved Vilnius festival was held for the 4th "
@@ -313,8 +313,9 @@ question(
     answer="Great apes",
     fact="Goodall (chimpanzees), Fossey (gorillas) and Galdikas "
          "(orangutans) were recruited by Louis Leakey — hence also "
-         "“Leakey's Angels”. Galdikas, of Lithuanian descent, still works "
-         "in Borneo. “Orangutan” means “person of the forest”.")
+         "“Leakey's Angels”. Galdikas, of Lithuanian descent, devoted her "
+         "life to the orangutans of Borneo and died in 2026. “Orangutan” "
+         "means “person of the forest”.")
 
 question(
     3, 6, "Which EU law unexpectedly entered the headlines after the "
@@ -508,8 +509,9 @@ for line in [
     "Audio and video embedded to play inline in PowerPoint (no YouTube "
     "links): the five music-round excerpts, plus LT "
     "United “We Are The Winners” (excerpt to be chosen), the EU-accession "
-    "promo (English subtitles still needed) and the Umaru Dikko story on "
-    "its answer slide. Original YouTube URLs kept in the speaker notes as "
+    "promo (a 26s clip on the question slide, the full promo on the answer; "
+    "English subtitles still needed) and the Umaru Dikko story on its "
+    "answer slide. Original YouTube URLs kept in the speaker notes as "
     "a backup.",
     "Lena Valaitis (2nd place, Eurovision 1981) kept as a fun fact on the "
     "answer slide rather than a separate question.",
